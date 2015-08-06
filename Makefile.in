@@ -251,6 +251,7 @@ package:
 
 rpm: package
 	mv blktap-3.0.0.xs992.tar.bz2 $(RPMROOT)/SOURCES
+	cp blktap-udev-ignore-tapdevs.patch $(RPMROOT)/SOURCES
 	cp redhat/blktap.spec $(RPMROOT)/SPECS
 	rpmbuild --define="release ${rpmversion}" -ba $(RPMROOT)/SPECS/blktap.spec
 
