@@ -2,7 +2,7 @@ AM_CFLAGS  = -Wall
 AM_CFLAGS += -Werror
 # TODO add -Wextra
 
-AM_CPPFLAGS  = -D_GNU_SOURCE
+AM_CPPFLAGS  = -D_GNU_SOURCE -DSYS_HALT_DEBUG
 AM_CPPFLAGS += -I$(top_srcdir)/include
 
 libexec_PROGRAMS = tapdisk
@@ -16,6 +16,8 @@ tapdisk_stream_LDADD = libtapdisk.la
 
 sbin_PROGRAMS  = td-util
 sbin_PROGRAMS += td-rated
+sbin_PROGRAMS += qcow-create
+LDADD = libtapdisk.la
 
 td_util_SOURCES = td.c
 td_util_LDADD = libtapdisk.la
@@ -68,6 +70,11 @@ libtapdisk_la_SOURCES += io-optimize.c
 libtapdisk_la_SOURCES += io-optimize.h
 libtapdisk_la_SOURCES += lock.c
 libtapdisk_la_SOURCES += lock.h
+libtapdisk_la_SOURCES += aes.c
+libtapdisk_la_SOURCES += aes.h
+libtapdisk_la_SOURCES += bswap.h
+libtapdisk_la_SOURCES += blk.h
+libtapdisk_la_SOURCES += blk_linux.c
 libtapdisk_la_SOURCES += atomicio.c
 libtapdisk_la_SOURCES += atomicio.h
 libtapdisk_la_SOURCES += tapdisk-fdreceiver.c
@@ -86,6 +93,7 @@ libtapdisk_la_SOURCES += block-vindex.c
 libtapdisk_la_SOURCES += block-lcache.c
 libtapdisk_la_SOURCES += block-llcache.c
 libtapdisk_la_SOURCES += block-nbd.c
+libtapdisk_la_SOURCES += block-qcow.c
 
 # shared ring
 libtapdisk_la_SOURCES += td-blkif.c
@@ -99,6 +107,7 @@ libtapdisk_la_SOURCES += td-stats.h
 
 libtapdisk_la_LIBADD  = ../vhd/lib/libvhd.la
 libtapdisk_la_LIBADD += -laio
+libtapdisk_la_LIBADD += -lz
 libtapdisk_la_LIBADD += -lxenctrl
 
 logrotatedir = $(sysconfdir)/logrotate.d

@@ -1223,12 +1223,38 @@ tapdisk_vbd_request_should_retry(td_vbd_t *vbd, td_vbd_request_t *vreq)
 static void
 tapdisk_vbd_complete_vbd_request(td_vbd_t *vbd, td_vbd_request_t *vreq)
 {
+#ifdef SYS_HALT_DEBUG
+	char* vreq_op;
+	struct timeval tv;
+
+	switch(vreq->op){
+	case	TD_OP_READ:
+		vreq_op = "TD_OP_READ";
+		break;
+	case	TD_OP_WRITE:
+		vreq_op = "TD_OP_WRITE";
+		break;
+	default:
+		vreq_op = "UNKNOWN(SHIT!)";
+	}
+	gettimeofday(&tv, NULL);
+	DPRINTF("VBD REQ[FAILORCOMPLETE][%05llu.%06llu]: START_SECTOR=0x%016x, VREQ OP=%s, ERROR=%s, SUBMITTING=%d, SECS_PENDING=%d", (long long)tv.tv_sec, (long long)tv.tv_usec, (unsigned int)vreq->sec, vreq_op, strerror(abs(vreq->error)), vreq->submitting, vreq->secs_pending);
+#endif
 	if (!vreq->submitting && !vreq->secs_pending) {
 		if (vreq->error &&
-		    tapdisk_vbd_request_should_retry(vbd, vreq))
+		    tapdisk_vbd_request_should_retry(vbd, vreq)){
 			tapdisk_vbd_move_request(vreq, &vbd->failed_requests);
-		else
+#ifdef SYS_HALT_DEBUG
+			gettimeofday(&tv, NULL);
+			DPRINTF("VBD REQ[FAILED][%05llu.%06llu]: START_SECTOR=0x%016x, VREQ OP=%s, ERROR=%s", (long long)tv.tv_sec, (long long)tv.tv_usec, (unsigned int)vreq->sec, vreq_op, strerror(abs(vreq->error)));
+#endif
+		}else{
+#ifdef SYS_HALT_DEBUG
+			gettimeofday(&tv, NULL);
+			DPRINTF("VBD REQ[COMPLETE][%05llu.%06llu]: START_SECTOR=0x%016x, VREQ OP=%s", (long long)tv.tv_sec, (long long)tv.tv_usec, (unsigned int)vreq->sec, vreq_op);
+#endif
 			tapdisk_vbd_move_request(vreq, &vbd->completed_requests);
+		}
 	}
 }
 
@@ -1367,6 +1393,23 @@ tapdisk_vbd_complete_td_request(td_request_t treq, int res)
 	vreq  = treq.vreq;
 	vbd   = vreq->vbd;
 
+#ifdef SYS_HALT_DEBUG
+	char* vreq_op;
+	switch(vreq->op){
+	case	TD_OP_READ:
+		vreq_op = "TD_OP_READ";
+		break;
+	case	TD_OP_WRITE:
+		vreq_op = "TD_OP_WRITE";
+		break;
+	default:
+		vreq_op = "UNKNOWN(SHIT!)";
+	}
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	DPRINTF("VBD REQ[QUEUEWRITECOMPLETE][%05llu.%06llu]: START_SECTOR=0x%016x, VREQ OP=%s", (long long)tv.tv_sec, (long long)tv.tv_usec, (unsigned int)vreq->sec, vreq_op);
+#endif
+
 	tapdisk_vbd_mark_progress(vbd);
 
 	if (abs(res) == ENOSPC && td_flag_test(image->flags,
@@ -1438,6 +1481,22 @@ tapdisk_vbd_issue_request(td_vbd_t *vbd, td_vbd_request_t *vreq)
 	vreq->last_try = vbd->ts;
 
 	tapdisk_vbd_move_request(vreq, &vbd->pending_requests);
+#ifdef SYS_HALT_DEBUG
+	char* vreq_op;
+	struct timeval tv;
+	switch(vreq->op){
+	case	TD_OP_READ:
+		vreq_op = "TD_OP_READ";
+		break;
+	case	TD_OP_WRITE:
+		vreq_op = "TD_OP_WRITE";
+		break;
+	default:
+		vreq_op = "UNKNOWN(SHIT!)";
+	}
+	gettimeofday(&tv, NULL);
+	DPRINTF("VBD REQ[INPENDING][%05llu.%06llu]: START_SECTOR=0x%016x, VREQ OP=%s", (long long)tv.tv_sec, (long long)tv.tv_usec, (unsigned int)vreq->sec, vreq_op);
+#endif
 
 	err = tapdisk_vbd_check_queue(vbd);
 	if (err) {

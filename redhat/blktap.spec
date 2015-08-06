@@ -1,7 +1,7 @@
 Summary: blktap user space utilities
 Name: blktap
-Version: 3.0.0.xs992
-Release: %release
+Version: 3.0.0.xs970
+Release: xs6.4.96
 License: GPLv2 or BSD
 Group: System/Hypervisor
 Source0: %{name}-%{version}.tar.bz2
@@ -58,6 +58,7 @@ make install DESTDIR=%{buildroot}
 %{_sbindir}/tap-ctl
 %{_sbindir}/td-util
 %{_sbindir}/td-rated
+%{_sbindir}/qcow-create
 %{_sbindir}/part-util
 %{_sbindir}/vhdpartx
 %{_libexecdir}/tapdisk
@@ -79,5 +80,5 @@ make install DESTDIR=%{buildroot}
 [ ! -x /sbin/chkconfig ] || chkconfig --add tapback
 
 %changelog
-* Tue Dec 09 2014 Citrix Systems, Inc. <www.citrix.com> [3.0.0.xs992 xs6.5.0]
+* Wed Sep 17 2014 Citrix Systems, Inc. <www.citrix.com> [3.0.0.xs970 xs6.4.96]
 - Build blktap.

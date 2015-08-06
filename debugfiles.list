@@ -1,0 +1,26 @@
+%dir /usr/lib/debug
+%dir /usr/lib/debug/usr
+%dir /usr/lib/debug/usr/bin
+%dir /usr/lib/debug/usr/sbin
+%dir /usr/lib/debug/usr/libexec
+%dir /usr/lib/debug/usr/lib64
+/usr/lib/debug/usr/bin/vhd-index.debug
+/usr/lib/debug/usr/bin/vhd-util.debug
+/usr/lib/debug/usr/bin/vhd-update.debug
+/usr/lib/debug/usr/bin/tapback.debug
+/usr/lib/debug/usr/sbin/lvm-util.debug
+/usr/lib/debug/usr/sbin/td-util.debug
+/usr/lib/debug/usr/sbin/td-rated.debug
+/usr/lib/debug/usr/sbin/tap-ctl.debug
+/usr/lib/debug/usr/sbin/part-util.debug
+/usr/lib/debug/usr/sbin/qcow-create.debug
+/usr/lib/debug/usr/libexec/tapdisk.debug
+/usr/lib/debug/usr/lib64/libvhd.so.0.1.1.debug
+/usr/lib/debug/usr/lib64/libvhd.so.debug
+/usr/lib/debug/usr/lib64/libblktapctl.so.0.1.1.debug
+/usr/lib/debug/usr/lib64/libvhdio.so.debug
+/usr/lib/debug/usr/lib64/libvhdio-3.0.0.xs970.so.debug
+/usr/lib/debug/usr/lib64/libblktapctl.so.0.debug
+/usr/lib/debug/usr/lib64/libvhd.so.0.debug
+/usr/lib/debug/usr/lib64/libblktapctl.so.debug
+/usr/src/debug/blktap-3.0.0.xs970

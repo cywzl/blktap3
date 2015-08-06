@@ -290,3 +290,18 @@ void MD5_Final(unsigned char *result, MD5_CTX *ctx)
 
 	memset(ctx, 0, sizeof(*ctx));
 }
+
+/**
+ *  * md5_sum - MD5 hash for a data block
+ *   * @addr: Pointers to the data area
+ *    * @len: Lengths of the data block
+ *     * @mac: Buffer for the hash
+ *      */
+void md5_sum(const void *addr, unsigned long len, unsigned char *mac)
+{
+        MD5_CTX ctx;
+
+        MD5_Init(&ctx);
+        MD5_Update(&ctx, addr, len);
+        MD5_Final(mac, &ctx);
+}

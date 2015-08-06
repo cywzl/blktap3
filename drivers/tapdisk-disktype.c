@@ -151,9 +151,7 @@ extern struct tap_disk tapdisk_vhdsync;
 #endif
 extern struct tap_disk tapdisk_vhd;
 extern struct tap_disk tapdisk_ram;
-#if 0
 extern struct tap_disk tapdisk_qcow;
-#endif
 extern struct tap_disk tapdisk_block_cache;
 extern struct tap_disk tapdisk_vhd_index;
 #if 0
@@ -174,9 +172,9 @@ const struct tap_disk *tapdisk_disk_drivers[] = {
 #endif
 	[DISK_TYPE_VHD]         = &tapdisk_vhd,
 	[DISK_TYPE_RAM]         = &tapdisk_ram,
-#if 0
+
 	[DISK_TYPE_QCOW]        = &tapdisk_qcow,
-#endif
+
 	[DISK_TYPE_BLOCK_CACHE] = &tapdisk_block_cache,
 	[DISK_TYPE_VINDEX]      = &tapdisk_vhd_index,
 #if 0

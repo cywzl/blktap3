@@ -41,5 +41,12 @@ typedef struct {
 extern void MD5_Init(MD5_CTX *ctx);
 extern void MD5_Update(MD5_CTX *ctx, const void *data, unsigned long size);
 extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
+/**
+ *  * md5_sum - MD5 hash for a data block
+ *   * @addr: Pointers to the data area
+ *    * @len: Lengths of the data block
+ *     * @mac: Buffer for the hash
+ *      */
+extern void md5_sum(const void *addr, const unsigned long len, unsigned char *mac);
 
 #endif
