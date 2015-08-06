@@ -1,7 +1,7 @@
 Summary: blktap user space utilities
 Name: blktap
 Version: 3.0.0.xs992
-Release: xs6.5.0
+Release: %release
 License: GPLv2 or BSD
 Group: System/Hypervisor
 Source0: %{name}-%{version}.tar.bz2
