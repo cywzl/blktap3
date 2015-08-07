@@ -58,7 +58,6 @@ make install DESTDIR=%{buildroot}
 %{_sbindir}/tap-ctl
 %{_sbindir}/td-util
 %{_sbindir}/td-rated
-%{_sbindir}/qcow-create
 %{_sbindir}/part-util
 %{_sbindir}/vhdpartx
 %{_libexecdir}/tapdisk

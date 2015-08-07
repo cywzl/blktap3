@@ -23,6 +23,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <libaio.h>
+#include <sys/times.h>
+#include <time.h>
 #ifdef __linux__
 #include <linux/version.h>
 #endif
@@ -33,6 +35,10 @@
 #include "tapdisk-filter.h"
 #include "tapdisk-server.h"
 #include "tapdisk-utils.h"
+
+#ifdef PERF_PROFILE
+#include "statistics.h"
+#endif
 
 #include "libaio-compat.h"
 #include "atomicio.h"
@@ -123,6 +129,7 @@ complete_tiocb(struct tqueue *queue, struct tiocb *tiocb, unsigned long res)
 		err = -EIO;
 
 	tiocb->cb(tiocb->arg, tiocb, err);
+
 }
 
 static int
@@ -440,13 +447,27 @@ tapdisk_lio_event(event_id_t id, char mode, void *private)
 	struct iocb *iocb;
 	struct tiocb *tiocb;
 	struct io_event *ep;
+#ifdef PERF_PROFILE
+	struct timespec tp;
+#endif
 
 	tapdisk_lio_ack_event(queue);
 
 	lio   = queue->tio_data;
 	ret   = io_getevents(lio->aio_ctx, 0,
 			     queue->size, lio->aio_events, NULL);
+
 	split = io_split(&queue->opioctx, lio->aio_events, ret);
+#ifdef PERF_PROFILE
+	for (i=0; i<ret; i++){
+		if (((struct tiocb*)lio->aio_events[i].obj->data)->submit_time.tv_nsec != 0 || ((struct tiocb*)lio->aio_events[i].obj->data)->submit_time.tv_sec != 0){
+			if (!clock_gettime(CLOCK_MONOTONIC, &tp)){
+				((struct tiocb*)lio->aio_events[i].obj->data)->finish_time = tp;
+				update_time(((struct tiocb*)lio->aio_events[i].obj->data)->submit_time, ((struct tiocb*)lio->aio_events[i].obj->data)->finish_time);
+			}
+		}
+	}
+#endif
 	tapdisk_filter_events(queue->filter, lio->aio_events, split);
 
 	DBG("events: %d, tiocbs: %d\n", ret, split);
@@ -502,13 +523,29 @@ tapdisk_lio_submit(struct tqueue *queue)
 {
 	struct lio *lio = queue->tio_data;
 	int merged, submitted, err = 0;
+#ifdef PERF_PROFILE
+	int i;
+	struct timespec tp;
+#endif
 
 	if (!queue->queued)
 		return 0;
 
 	tapdisk_filter_iocbs(queue->filter, queue->iocbs, queue->queued);
+
+#ifdef PERF_PROFILE
+	for (i=0; i<queue->queued; i++){
+		if (!clock_gettime(CLOCK_MONOTONIC, &tp)){
+			((struct tiocb*)queue->iocbs[i]->data)->submit_time = tp;
+		}else{
+			memset(&(((struct tiocb*)queue->iocbs[i]->data)->submit_time), 0, sizeof(struct timespec));
+		}
+	}
+#endif
+
 	merged    = io_merge(&queue->opioctx, queue->iocbs, queue->queued);
 	tapdisk_lio_set_eventfd(queue, merged, queue->iocbs);
+
 	submitted = io_submit(lio->aio_ctx, merged, queue->iocbs);
 
 	DBG("queued: %d, merged: %d, submitted: %d\n",

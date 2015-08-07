@@ -181,11 +181,11 @@ td_create(int type, int argc, char *argv[])
 	uint64_t size;
 	char *name, *buf;
 #ifdef XS_VHD
-	uint8_t encrypt_method = 0;
+	char* encrypt_method = NULL;
 #endif
 	int c, i, fd, sparse = 1, fixedsize = 0;
 
-	while ((c = getopt(argc, argv, "hrb")) != -1) {
+	while ((c = getopt(argc, argv, "E:hrb")) != -1) {
 		switch(c) {
 		case 'r':
 			sparse = 0;
@@ -195,7 +195,7 @@ td_create(int type, int argc, char *argv[])
 			break;
 #ifdef XS_VHD
 		case 'E':
-			encrypt_method = VHD_CRYPT_AES;
+			encrypt_method = optarg;
 			break;
 #endif
 		default:
@@ -236,8 +236,10 @@ td_create(int type, int argc, char *argv[])
 		if (fixedsize)
 			cargv[cargc++] = "-b";
 #ifdef XS_VHD
-		if (encrypt_method)
+		if (encrypt_method){
 			cargv[cargc++] = "-E";
+			cargv[cargc++] = encrypt_method;
+		}
 #endif
 
 		return vhd_util_create(cargc, cargv);

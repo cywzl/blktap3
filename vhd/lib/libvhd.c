@@ -3169,16 +3169,15 @@ __vhd_create(const char *name, const char *parent, uint64_t bytes, int type, uin
 		goto out;
 	}
 
+	err = vhd_test_file_fixed(ctx.file, &ctx.is_block);
+	if (err)
+		goto out;
+
 #ifndef XS_VHD
 	vhd_initialize_footer(&ctx, type, size);
 #else
 	vhd_initialize_footer(&ctx, type, size, encrypt_method);
 #endif
-
-	if (err)
-		goto out;
-
-	vhd_initialize_footer(&ctx, type, size);
 
 	if (type == HD_TYPE_FIXED) {
 		err = vhd_initialize_fixed_disk(&ctx);

@@ -30,6 +30,10 @@
 #include "tapdisk-server.h"
 #include "tapdisk-control.h"
 
+#ifdef PERF_PROFILE
+#include "statistics.h"
+#endif
+
 void tdnbd_fdreceiver_start();
 void tdnbd_fdreceiver_stop();
 
@@ -136,9 +140,18 @@ main(int argc, char *argv[])
 	 */
 	tdnbd_fdreceiver_start();
 
+#ifdef PERF_PROFILE
+	init_statistics();
+	start_collecting();
+#endif
+
 	err = tapdisk_server_run();
 
 out:
+#ifdef PERF_PROFILE
+	stop_collecting();
+	destroy_statistics();
+#endif
 	tdnbd_fdreceiver_stop();
 	tapdisk_control_close();
 	tapdisk_stop_logging();

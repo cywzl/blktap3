@@ -2,28 +2,30 @@ AM_CFLAGS  = -Wall
 AM_CFLAGS += -Werror
 # TODO add -Wextra
 
-AM_CPPFLAGS  = -D_GNU_SOURCE -DSYS_HALT_DEBUG -DXS_VHD
-AM_CPPFLAGS += -I$(top_srcdir)/include
+AM_CPPFLAGS  = -D_GNU_SOURCE -DXS_VHD -DPERF_PROFILE
+AM_CPPFLAGS += -I$(top_srcdir)/include -lrt
 
 libexec_PROGRAMS = tapdisk
 
 tapdisk_SOURCES = tapdisk2.c
-tapdisk_LDADD = libtapdisk.la
+tapdisk_LDADD = libtapdisk.la ../libs/libaes.a
 
 noinst_PROGRAMS = tapdisk-stream
 
-tapdisk_stream_LDADD = libtapdisk.la
+tapdisk_stream_LDADD = libtapdisk.la ../libs/libaes.a
 
 sbin_PROGRAMS  = td-util
 sbin_PROGRAMS += td-rated
-LDADD = libtapdisk.la
+LDADD = libtapdisk.la ../libs/libaes.a
 
 td_util_SOURCES = td.c
-td_util_LDADD = libtapdisk.la
+td_util_LDADD = libtapdisk.la ../libs/libaes.a
 
 noinst_LTLIBRARIES = libtapdisk.la
 
 libtapdisk_la_SOURCES  = tapdisk.h
+libtapdisk_la_SOURCES += statistics.c
+libtapdisk_la_SOURCES += statistics.h
 libtapdisk_la_SOURCES += scheduler.c
 libtapdisk_la_SOURCES += scheduler.h
 libtapdisk_la_SOURCES += tapdisk-control.c
@@ -69,8 +71,6 @@ libtapdisk_la_SOURCES += io-optimize.c
 libtapdisk_la_SOURCES += io-optimize.h
 libtapdisk_la_SOURCES += lock.c
 libtapdisk_la_SOURCES += lock.h
-libtapdisk_la_SOURCES += aes.c
-libtapdisk_la_SOURCES += aes.h
 libtapdisk_la_SOURCES += bswap.h
 libtapdisk_la_SOURCES += blk.h
 libtapdisk_la_SOURCES += blk_linux.c
@@ -107,6 +107,7 @@ libtapdisk_la_LIBADD  = ../vhd/lib/libvhd.la
 libtapdisk_la_LIBADD += -laio
 libtapdisk_la_LIBADD += -lz
 libtapdisk_la_LIBADD += -lxenctrl
+libtapdisk_la_LIBADD += -lrt
 
 logrotatedir = $(sysconfdir)/logrotate.d
 dist_logrotate_DATA = blktap

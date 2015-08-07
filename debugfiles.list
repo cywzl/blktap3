@@ -13,7 +13,6 @@
 /usr/lib/debug/usr/sbin/td-rated.debug
 /usr/lib/debug/usr/sbin/tap-ctl.debug
 /usr/lib/debug/usr/sbin/part-util.debug
-/usr/lib/debug/usr/sbin/qcow-create.debug
 /usr/lib/debug/usr/libexec/tapdisk.debug
 /usr/lib/debug/usr/lib64/libvhd.so.0.1.1.debug
 /usr/lib/debug/usr/lib64/libvhd.so.debug

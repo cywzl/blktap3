@@ -19,6 +19,7 @@
 #define TAPDISK_QUEUE_H
 
 #include <libaio.h>
+#include <time.h>
 
 #include "io-optimize.h"
 #include "scheduler.h"
@@ -32,6 +33,11 @@ typedef void (*td_queue_callback_t)(void *arg, struct tiocb *, int err);
 struct tiocb {
 	td_queue_callback_t   cb;
 	void                 *arg;
+
+#ifdef PERF_PROFILE
+	struct timespec 	submit_time;
+	struct timespec 	finish_time;
+#endif
 
 	struct iocb           iocb;
 	struct tiocb         *next;

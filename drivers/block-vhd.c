@@ -64,7 +64,7 @@
 #include "tapdisk-interface.h"
 #include "tapdisk-disktype.h"
 #include "tapdisk-storage.h"
-#include "aes.h"
+/*#include "aes.h"*/
 #include "bswap.h"
 
 unsigned int SPB;
@@ -145,10 +145,45 @@ unsigned int SPB;
 #define VHD_FLAG_TX_LIVE             1
 #define VHD_FLAG_TX_UPDATE_BAT       2
 
+#if !defined (ALIGN16)
+# if defined (__GNUC__)
+#  define ALIGN16  __attribute__  ( (aligned (16)))
+# else
+#  define ALIGN16 __declspec (align (16))
+# endif
+#endif
+
 typedef uint8_t vhd_flag_t;
 
 struct vhd_state;
 struct vhd_request;
+
+typedef struct KEY_SCHEDULE{
+    ALIGN16 unsigned char KEY[16*15];
+    unsigned int nr;
+}AES_KEY;
+
+extern void AES_CBC_encrypt (const unsigned char *in,
+                 unsigned char *out,
+                 unsigned char ivec[16],
+                 unsigned long length,
+                 const unsigned char *KS,
+                 int nr);
+
+extern void AES_CBC_decrypt (const unsigned char *in,
+							unsigned char *out,
+							unsigned char ivec[16],
+							unsigned long length,
+							const unsigned char *KS,
+							int nr);
+
+extern int AES_set_encrypt_key (const unsigned char *userKey,
+        						const int bits,
+								AES_KEY *key);
+
+extern int AES_set_decrypt_key (const unsigned char *userKey,
+                        const int bits,
+                        AES_KEY *key);
 
 struct vhd_req_list {
 	struct vhd_request       *head;
@@ -302,8 +337,13 @@ static void encrypt_sectors(struct vhd_state *s, int64_t sector_num,
 	for (i = 0; i < nb_sectors; i++) {
 		ivec.ll[0] = cpu_to_le64(sector_num);
 		ivec.ll[1] = 0;
-		AES_cbc_encrypt(in_buf, out_buf, 512, key,
-				ivec.b, enc);
+		/*AES_cbc_encrypt(in_buf, out_buf, 512, key,
+				ivec.b, enc);*/
+		if (enc){
+			AES_CBC_encrypt(in_buf, out_buf, ivec.b, 512, key->KEY, key->nr);
+		}else{
+			AES_CBC_decrypt(in_buf, out_buf, ivec.b, 512, key->KEY, key->nr);
+		}
 		sector_num++;
 		in_buf += 512;
 		out_buf += 512;
@@ -909,9 +949,9 @@ __vhd_open(td_driver_t *driver, const char *name, vhd_flag_t flags)
 
 #ifdef XS_VHD
 	if (s->vhd.footer.encrypt_method == VHD_CRYPT_AES) {
-		if (get_key_from_dw(name, password, sizeof(password)) < 0)
-			goto fail;
-		/*memset(&password[0], 0xaa, ENCRYPT_BYTE);*/
+		/*if (get_key_from_dw(name, password, sizeof(password)) < 0)
+			goto fail;*/
+		memset(&password[0], 0xaa, ENCRYPT_BYTE);
 		if (vhd_set_key(s, password) < 0)
 			goto fail;
                 DPRINTF("Set password for encrypted disk");

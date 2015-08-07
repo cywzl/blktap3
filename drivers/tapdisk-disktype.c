@@ -165,7 +165,6 @@ const struct tap_disk *tapdisk_disk_drivers[] = {
 	[DISK_TYPE_VHD]         = &tapdisk_vhd,
 	[DISK_TYPE_RAM]         = &tapdisk_ram,
 
-
 	[DISK_TYPE_BLOCK_CACHE] = &tapdisk_block_cache,
 	[DISK_TYPE_VINDEX]      = &tapdisk_vhd_index,
 #if 0

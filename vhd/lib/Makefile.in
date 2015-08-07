@@ -198,7 +198,7 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 SUBDIRS = . $(MAYBE_test)
 AM_CFLAGS = -Wall -Werror
-AM_CPPFLAGS = -D_GNU_SOURCE -I$(top_srcdir)/include \
+AM_CPPFLAGS = -D_GNU_SOURCE -DXS_VHD -I$(top_srcdir)/include \
 	-I$(top_srcdir)/lvm -I$(top_srcdir)/part
 lib_LTLIBRARIES = libvhd.la $(MAYBE_libvhdio_la)
 libvhd_la_SOURCES = libvhd.c libvhd-journal.c libvhd-index.c \

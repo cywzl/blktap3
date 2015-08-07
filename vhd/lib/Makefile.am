@@ -4,7 +4,7 @@ SUBDIRS = . $(MAYBE_test)
 AM_CFLAGS  = -Wall
 AM_CFLAGS += -Werror
 
-AM_CPPFLAGS  = -D_GNU_SOURCE
+AM_CPPFLAGS  = -D_GNU_SOURCE -DXS_VHD
 AM_CPPFLAGS += -I$(top_srcdir)/include
 AM_CPPFLAGS += -I$(top_srcdir)/lvm
 AM_CPPFLAGS += -I$(top_srcdir)/part

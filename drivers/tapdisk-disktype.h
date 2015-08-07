@@ -24,7 +24,6 @@
 #define DISK_TYPE_VHDSYNC     3
 #define DISK_TYPE_VHD         4
 #define DISK_TYPE_RAM         5
-#define DISK_TYPE_QCOW        6
 #define DISK_TYPE_BLOCK_CACHE 7
 #define DISK_TYPE_VINDEX      8
 #define DISK_TYPE_LOG         9
