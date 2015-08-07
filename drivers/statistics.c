@@ -23,7 +23,7 @@ void* log_time_statistics(void* arg){
 
 		pthread_mutex_lock(&statistics_mutex);
 		if (total_ios != 0)
-			DPRINTF("Avg I/O operation latency during the last %d ns: %lu, (total elapsed:%lu)", STAT_TIME_MS, total_time_elapsed / total_ios, total_time_elapsed );
+			DPRINTF("Avg I/O operation latency during the last %d s: %lu, (total elapsed:%lu)", STAT_TIME_MS, total_time_elapsed / total_ios, total_time_elapsed );
 		total_time_elapsed = 0;
 		total_ios = 0;
 		pthread_mutex_unlock(&statistics_mutex);

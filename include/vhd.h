@@ -37,6 +37,7 @@
 
 #define VHD_CRYPT_NONE 0x00
 #define VHD_CRYPT_AES  0x01
+#define VHD_CRYPT_SM4  0x02
 
 #define ENCRYPT_BIT 256
 #define ENCRYPT_BYTE 32  // ENCRYPT_BIT/8

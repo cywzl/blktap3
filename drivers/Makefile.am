@@ -8,18 +8,18 @@ AM_CPPFLAGS += -I$(top_srcdir)/include -lrt
 libexec_PROGRAMS = tapdisk
 
 tapdisk_SOURCES = tapdisk2.c
-tapdisk_LDADD = libtapdisk.la ../libs/libaes.a
+tapdisk_LDADD = libtapdisk.la ../libs/libaes.a ../libs/libsm4.a
 
 noinst_PROGRAMS = tapdisk-stream
 
-tapdisk_stream_LDADD = libtapdisk.la ../libs/libaes.a
+tapdisk_stream_LDADD = libtapdisk.la ../libs/libaes.a ../libs/libsm4.a
 
 sbin_PROGRAMS  = td-util
 sbin_PROGRAMS += td-rated
-LDADD = libtapdisk.la ../libs/libaes.a
+LDADD = libtapdisk.la ../libs/libaes.a ../libs/libsm4.a
 
 td_util_SOURCES = td.c
-td_util_LDADD = libtapdisk.la ../libs/libaes.a
+td_util_LDADD = libtapdisk.la ../libs/libaes.a ../libs/libsm4.a
 
 noinst_LTLIBRARIES = libtapdisk.la
 

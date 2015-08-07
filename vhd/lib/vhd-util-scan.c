@@ -90,6 +90,9 @@ struct vhd_image {
 	uint64_t             capacity;
 	off64_t              size;
 	uint8_t              hidden;
+#ifdef XS_VHD
+	uint8_t				encrypt_method;
+#endif
 	char                 marker;
 	int                  error;
 	char                *message;
@@ -281,13 +284,24 @@ vhd_util_scan_print_image_indent(struct vhd_image *image, int tab)
 		       tab, pad, image->name, image->error, image->message);
 	else if (!(flags & VHD_SCAN_MARKERS))
 		printf("%*svhd=%s capacity=%"PRIu64" size=%"PRIu64" hidden=%u "
+#ifdef XS_VHD
+			   "encrypt_method=%u parent=%s%s\n", tab, pad, name, image->capacity,
+		       image->size, image->hidden, image->encrypt_method, parent, pmsg);
+#else
 		       "parent=%s%s\n", tab, pad, name, image->capacity,
 		       image->size, image->hidden, parent, pmsg);
+#endif
 	else
 		printf("%*svhd=%s capacity=%"PRIu64" size=%"PRIu64" hidden=%u "
+#ifdef XS_VHD
+			   "marker=%u encrypt_method=%u parent=%s%s\n", tab, pad, name,
+			   image->capacity, image->size, image->hidden,
+			   (uint8_t)image->marker, image->encrypt_method, parent, pmsg);
+#else
 		       "marker=%u parent=%s%s\n", tab, pad, name,
 		       image->capacity, image->size, image->hidden,
 		       (uint8_t)image->marker, parent, pmsg);
+#endif
 }
 
 static void
@@ -1025,7 +1039,9 @@ vhd_util_scan_targets(int cnt, struct target *targets)
 				goto end;
 			}
 		}
-
+#ifdef XS_VHD
+		image.encrypt_method = vhd.footer.encrypt_method;
+#endif
 	end:
 		vhd_util_scan_print_image(&image);
 

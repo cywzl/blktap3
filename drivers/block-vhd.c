@@ -65,6 +65,7 @@
 #include "tapdisk-disktype.h"
 #include "tapdisk-storage.h"
 /*#include "aes.h"*/
+#include "sm4.h"
 #include "bswap.h"
 
 unsigned int SPB;
@@ -163,12 +164,17 @@ typedef struct KEY_SCHEDULE{
     unsigned int nr;
 }AES_KEY;
 
+typedef union{
+	AES_KEY aes_key;
+	sm4_context sm4_key;
+}ENCRYPT_CONTEXT;
+
 extern void AES_CBC_encrypt (const unsigned char *in,
-                 unsigned char *out,
-                 unsigned char ivec[16],
-                 unsigned long length,
-                 const unsigned char *KS,
-                 int nr);
+                 	 unsigned char *out,
+					 unsigned char ivec[16],
+					 unsigned long length,
+                 	 const unsigned char *KS,
+					 int nr);
 
 extern void AES_CBC_decrypt (const unsigned char *in,
 							unsigned char *out,
@@ -289,8 +295,8 @@ struct vhd_state {
 	uint64_t                  write_size;
 
 #ifdef XS_VHD
-	AES_KEY aes_encrypt_key;       /*AES key*/
-	AES_KEY aes_decrypt_key;       /*AES key*/
+	ENCRYPT_CONTEXT encrypt_key;
+	ENCRYPT_CONTEXT decrypt_key;
 #endif
 };
 
@@ -326,7 +332,7 @@ int                       _dev_zero = -1;
 static void encrypt_sectors(struct vhd_state *s, int64_t sector_num,
                             uint8_t *out_buf, const uint8_t *in_buf,
                             int nb_sectors, int enc,
-                            const AES_KEY *key)
+                            const ENCRYPT_CONTEXT *key)
 {
 	union {
 		uint64_t ll[2];
@@ -339,10 +345,14 @@ static void encrypt_sectors(struct vhd_state *s, int64_t sector_num,
 		ivec.ll[1] = 0;
 		/*AES_cbc_encrypt(in_buf, out_buf, 512, key,
 				ivec.b, enc);*/
-		if (enc){
-			AES_CBC_encrypt(in_buf, out_buf, ivec.b, 512, key->KEY, key->nr);
-		}else{
-			AES_CBC_decrypt(in_buf, out_buf, ivec.b, 512, key->KEY, key->nr);
+		if (s->vhd.footer.encrypt_method == VHD_CRYPT_AES){
+			if (enc){
+				AES_CBC_encrypt(in_buf, out_buf, ivec.b, 512, key->aes_key.KEY, key->aes_key.nr);
+			}else{
+				AES_CBC_decrypt(in_buf, out_buf, ivec.b, 512, key->aes_key.KEY, key->aes_key.nr);
+			}
+		}else if(s->vhd.footer.encrypt_method == VHD_CRYPT_SM4){
+			sm4_crypt_cbc((sm4_context*)&(key->sm4_key), enc, 512, ivec.b, (unsigned char*)in_buf, out_buf);
 		}
 		sector_num++;
 		in_buf += 512;
@@ -365,10 +375,15 @@ static int vhd_set_key(struct vhd_state *s, const char *key)
 		keybuf[i] = key[i];
 	}
 
-	if (AES_set_encrypt_key(keybuf, ENCRYPT_BIT, &s->aes_encrypt_key) != 0)
-		return -1;
-	if (AES_set_decrypt_key(keybuf, ENCRYPT_BIT, &s->aes_decrypt_key) != 0)
-		return -1;
+	if (s->vhd.footer.encrypt_method == VHD_CRYPT_AES){
+		if (AES_set_encrypt_key(keybuf, ENCRYPT_BIT, &s->encrypt_key.aes_key) != 0)
+			return -1;
+		if (AES_set_decrypt_key(keybuf, ENCRYPT_BIT, &s->decrypt_key.aes_key) != 0)
+			return -1;
+	}else if (s->vhd.footer.encrypt_method == VHD_CRYPT_SM4){
+		sm4_setkey_enc(&s->encrypt_key.sm4_key, keybuf);
+		sm4_setkey_dec(&s->decrypt_key.sm4_key, keybuf);
+	}
 #if 0
 	/* test */
 	{
@@ -948,13 +963,13 @@ __vhd_open(td_driver_t *driver, const char *name, vhd_flag_t flags)
 	err = vhd_open(&s->vhd, name, o_flags);
 
 #ifdef XS_VHD
-	if (s->vhd.footer.encrypt_method == VHD_CRYPT_AES) {
+	if (s->vhd.footer.encrypt_method != VHD_CRYPT_NONE) {
 		/*if (get_key_from_dw(name, password, sizeof(password)) < 0)
 			goto fail;*/
 		memset(&password[0], 0xaa, ENCRYPT_BYTE);
 		if (vhd_set_key(s, password) < 0)
 			goto fail;
-                DPRINTF("Set password for encrypted disk");
+        DPRINTF("Set password for encrypted disk");
 	}
 #endif
 
@@ -1947,11 +1962,11 @@ schedule_data_write(struct vhd_state *s, td_request_t treq, vhd_flag_t flags)
 		return -EBUSY;
 
 #ifdef XS_VHD
-	if (s->vhd.footer.encrypt_method == VHD_CRYPT_AES){
+	if (s->vhd.footer.encrypt_method != VHD_CRYPT_NONE){
 
 		encrypt_sectors(s, treq.sec, treq.buf,
 				treq.buf, treq.secs, 1,
-				&s->aes_encrypt_key);
+				&(s->encrypt_key));
 	}
 #endif
 
@@ -2596,11 +2611,11 @@ finish_data_read(struct vhd_request *req)
 	struct vhd_state *s = req->state;
 
 #ifdef XS_VHD
-	if (s->vhd.footer.encrypt_method == VHD_CRYPT_AES) {
+	if (s->vhd.footer.encrypt_method != VHD_CRYPT_NONE) {
 
 		encrypt_sectors(s, req->treq.sec, req->treq.buf,
 				req->treq.buf, req->treq.secs, 0,
-				&s->aes_decrypt_key);
+				&(s->decrypt_key));
 	}
 #endif
 

@@ -277,7 +277,7 @@ td_create(int type, int argc, char *argv[])
 
  usage:
 	fprintf(stderr, "usage: td-util create %s [-h help] [-r reserve] "
-		"[-b file_is_fixed_size] <SIZE(MB)> <FILENAME>\n",
+		"[-b file_is_fixed_size] [-E encrypt_method] <SIZE(MB)> <FILENAME>\n",
 		td_disk_types[type]);
 	return EINVAL;
 }

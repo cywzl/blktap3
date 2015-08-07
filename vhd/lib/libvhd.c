@@ -2809,6 +2809,9 @@ vhd_initialize_header(vhd_context_t *ctx, const char *parent_path,
 			return err;
 
 		ctx->header.prt_ts = vhd_time(stats.st_mtime);
+#ifdef XS_VHD
+		ctx->footer.encrypt_method = parent.footer.encrypt_method;
+#endif
 		uuid_copy(ctx->header.prt_uuid, parent.footer.uuid);
 		*psize = parent.footer.curr_size;
 		if (!size)
