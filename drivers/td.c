@@ -180,6 +180,9 @@ td_create(int type, int argc, char *argv[])
 	ssize_t mb;
 	uint64_t size;
 	char *name, *buf;
+#ifdef XS_VHD
+	uint8_t encrypt_method = 0;
+#endif
 	int c, i, fd, sparse = 1, fixedsize = 0;
 
 	while ((c = getopt(argc, argv, "hrb")) != -1) {
@@ -190,6 +193,11 @@ td_create(int type, int argc, char *argv[])
 		case 'b':
 			fixedsize = 1;
 			break;
+#ifdef XS_VHD
+		case 'E':
+			encrypt_method = VHD_CRYPT_AES;
+			break;
+#endif
 		default:
 			fprintf(stderr, "Unknown option %c\n", (char)c);
 		case 'h':
@@ -227,6 +235,10 @@ td_create(int type, int argc, char *argv[])
 			cargv[cargc++] = "-r";
 		if (fixedsize)
 			cargv[cargc++] = "-b";
+#ifdef XS_VHD
+		if (encrypt_method)
+			cargv[cargc++] = "-E";
+#endif
 
 		return vhd_util_create(cargc, cargv);
 	}
@@ -275,6 +287,9 @@ td_snapshot(int type, int argc, char *argv[])
 	int c, err, cargc;
 	struct stat stats;
 	char *name, *backing, *limit = NULL;
+#ifdef XS_VHD
+	uint8_t encrypt_method = 0;
+#endif
 	int fixedsize = 0, rawparent = 0;
 
 	if (type != TD_TYPE_VHD) {
@@ -297,6 +312,11 @@ td_snapshot(int type, int argc, char *argv[])
 		case 'h':
 			err = 0;
 			goto usage;
+#ifdef XS_VHD
+		case 'E':
+			encrypt_method = VHD_CRYPT_AES;
+			break;
+#endif
 		default:
 			err = EINVAL;
 			goto usage;
@@ -337,6 +357,10 @@ td_snapshot(int type, int argc, char *argv[])
 		cargv[cargc++] = "-l";
 		cargv[cargc++] = limit;
 	}
+#ifdef XS_VHD
+	if (encrypt_method)
+		cargv[cargc++] = "-E";
+#endif
 	return vhd_util_snapshot(cargc, cargv);
 
  usage:

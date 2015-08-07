@@ -164,6 +164,9 @@ vhd_print_footer(vhd_footer_t *f, int hex)
 
 	printf("Saved state         : %s\n", f->saved == 0 ? "No" : "Yes");
 	printf("Hidden              : %d\n", f->hidden);
+#ifdef XS_VHD
+	printf("Encrypt_method      : %d\n", f->encrypt_method);
+#endif
 	printf("\n");
 }
 

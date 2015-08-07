@@ -53,6 +53,9 @@
 #include <libaio.h>
 #include <sys/mman.h>
 #include <limits.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <sys/socket.h>
 
 #include "debug.h"
 #include "libvhd.h"
@@ -61,6 +64,8 @@
 #include "tapdisk-interface.h"
 #include "tapdisk-disktype.h"
 #include "tapdisk-storage.h"
+#include "aes.h"
+#include "bswap.h"
 
 unsigned int SPB;
 
@@ -247,7 +252,21 @@ struct vhd_state {
 	uint64_t                  read_size;
 	uint64_t                  writes;
 	uint64_t                  write_size;
+
+#ifdef XS_VHD
+	AES_KEY aes_encrypt_key;       /*AES key*/
+	AES_KEY aes_decrypt_key;       /*AES key*/
+#endif
 };
+
+#ifdef XS_VHD
+typedef struct dw_message dw_message_t;
+struct dw_message {
+	char filename[128];
+	char username[64];
+	char key[KEY_LEN];
+};
+#endif
 
 #define test_vhd_flag(word, flag)  ((word) & (flag))
 #define set_vhd_flag(word, flag)   ((word) |= (flag))
@@ -262,6 +281,217 @@ static struct vhd_state  *_vhd_master;
 static unsigned long      _vhd_zsize;
 static char              *_vhd_zeros = NULL;
 int                       _dev_zero = -1;
+#ifdef XS_VHD
+
+/*
+ * The crypt function is compatible with the linux cryptoloop
+ * algorithm for < 4 GB images. NOTE: out_buf == in_buf is
+ * supported .
+ */
+static void encrypt_sectors(struct vhd_state *s, int64_t sector_num,
+                            uint8_t *out_buf, const uint8_t *in_buf,
+                            int nb_sectors, int enc,
+                            const AES_KEY *key)
+{
+	union {
+		uint64_t ll[2];
+		uint8_t b[16];
+	} ivec;
+	int i;
+
+	for (i = 0; i < nb_sectors; i++) {
+		ivec.ll[0] = cpu_to_le64(sector_num);
+		ivec.ll[1] = 0;
+		AES_cbc_encrypt(in_buf, out_buf, 512, key,
+				ivec.b, enc);
+		sector_num++;
+		in_buf += 512;
+		out_buf += 512;
+	}
+}
+
+static int vhd_set_key(struct vhd_state *s, const char *key)
+{
+	uint8_t keybuf[ENCRYPT_BYTE];
+	int len, i;
+
+	memset(keybuf, 0, ENCRYPT_BYTE);
+	len = strlen(key);
+	if (len > ENCRYPT_BYTE)
+		len = ENCRYPT_BYTE;
+	/* XXX: we could compress the chars to 7 bits to increase
+	   entropy */
+	for (i = 0; i < len; i++) {
+		keybuf[i] = key[i];
+	}
+
+	if (AES_set_encrypt_key(keybuf, ENCRYPT_BIT, &s->aes_encrypt_key) != 0)
+		return -1;
+	if (AES_set_decrypt_key(keybuf, ENCRYPT_BIT, &s->aes_decrypt_key) != 0)
+		return -1;
+#if 0
+	/* test */
+	{
+		uint8_t in[16];
+		uint8_t out[16];
+		uint8_t tmp[16];
+		for (i=0; i<16; i++)
+			in[i] = i;
+		AES_encrypt(in, tmp, &s->aes_encrypt_key);
+		AES_decrypt(tmp, out, &s->aes_decrypt_key);
+		for (i = 0; i < 16; i++)
+			DPRINTF(" %02x", tmp[i]);
+		DPRINTF("\n");
+		for (i = 0; i < 16; i++)
+			DPRINTF(" %02x", out[i]);
+		DPRINTF("\n");
+	}
+#endif
+	return 0;
+}
+#endif
+
+#ifdef XS_VHD
+int
+read_raw(int fd, void *buf, size_t size, struct timeval *timeout)
+{
+	fd_set readfds;
+	size_t offset = 0;
+	int ret;
+
+	while (offset < size) {
+		FD_ZERO(&readfds);
+		FD_SET(fd, &readfds);
+
+		ret = select(fd + 1, &readfds, NULL, NULL, timeout);
+		if (ret == -1)
+			break;
+		else if (FD_ISSET(fd, &readfds)) {
+			ret = read(fd, buf + offset, size - offset);
+			if (ret <= 0)
+				break;
+			offset += ret;
+		} else
+			break;
+	}
+
+	if (offset != size) {
+		EPRINTF("failure reading data %zd/%zd\n", offset, size);
+		return -EIO;
+	}
+
+	return 0;
+}
+
+int
+read_message(int fd, dw_message_t *message,
+		     struct timeval *timeout)
+{
+	size_t size = sizeof(dw_message_t);
+	int err;
+
+	err = read_raw(fd, message, size, timeout);
+	if (err)
+		return err;
+
+	DPRINTF("received filename '%s' message (username = %s, key= %s)\n",
+	    message->filename, message->username, message->key);
+
+	return 0;
+}
+
+int
+write_message(int fd, dw_message_t *message, struct timeval *timeout)
+{
+	fd_set writefds;
+	int ret, len, offset;
+
+	offset = 0;
+	len    = sizeof(dw_message_t);
+
+	DPRINTF("sending filename '%s' message\n", message->filename);
+
+	while (offset < len) {
+		FD_ZERO(&writefds);
+		FD_SET(fd, &writefds);
+
+		/* we don't bother reinitializing tv. at worst, it will wait a
+		 * bit more time than expected. */
+
+		ret = select(fd + 1, NULL, &writefds, NULL, timeout);
+		if (ret == -1)
+			break;
+		else if (FD_ISSET(fd, &writefds)) {
+			ret = write(fd, message + offset, len - offset);
+			if (ret <= 0)
+				break;
+			offset += ret;
+		} else
+			break;
+	}
+
+	if (offset != len) {
+		EPRINTF("failure writing message\n");
+		return -EIO;
+	}
+
+	return 0;
+}
+
+int get_key_from_dw(const char *name, char *buf, int buf_size)
+{
+	int fd, err;
+	struct sockaddr_un saddr;
+	dw_message_t message;
+	struct timeval timeout;
+
+	timeout.tv_sec = 30;
+	timeout.tv_usec = 0;
+
+	memset(&message, 0, sizeof(message));
+
+	err = snprintf(message.filename,
+		       sizeof(message.filename) - 1, "%s", name);
+
+	if (err >= sizeof(message.filename)) {
+		EPRINTF("name too long\n");
+		return ENAMETOOLONG;
+	}
+
+	fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (fd == -1) {
+		EPRINTF("couldn't create socket for %s: %s\n", name, strerror(errno));
+		return -errno;
+	}
+
+	memset(&saddr, 0, sizeof(saddr));
+	saddr.sun_family = AF_UNIX;
+	strcpy(saddr.sun_path, "/var/run/dw/dw.sock");
+
+	err = connect(fd, (const struct sockaddr *)&saddr, sizeof(saddr));
+	if (err) {
+		EPRINTF("couldn't connect to %s: %d\n", name, errno);
+		close(fd);
+		return -errno;
+	}
+
+	err = write_message(fd, &message, &timeout);
+	if (err) {
+		EPRINTF("failed to send filename '%s' message\n",
+			message.filename);
+		return err;
+	}
+
+	err = read_message(fd, &message, &timeout);
+	if (err) {
+		EPRINTF("failed to receive key '%s' message\n",
+			message.key);
+		return err;
+	}
+	memcpy(buf, message.key, buf_size);
+	return 0;
+}
+#endif
 
 static int
 vhd_initialize(struct vhd_state *s)
@@ -647,6 +877,9 @@ __vhd_open(td_driver_t *driver, const char *name, vhd_flag_t flags)
 {
         int i, o_flags, err;
 	struct vhd_state *s;
+#ifdef XS_VHD
+	char password[ENCRYPT_BYTE];
+#endif
 
         DBG(TLOG_INFO, "vhd_open: %s\n", name);
 	if (test_vhd_flag(flags, VHD_FLAG_OPEN_STRICT))
@@ -673,6 +906,18 @@ __vhd_open(td_driver_t *driver, const char *name, vhd_flag_t flags)
 		set_vhd_flag(o_flags, VHD_OPEN_STRICT);
 
 	err = vhd_open(&s->vhd, name, o_flags);
+
+#ifdef XS_VHD
+	if (s->vhd.footer.encrypt_method == VHD_CRYPT_AES) {
+		if (get_key_from_dw(name, password, sizeof(password)) < 0)
+			goto fail;
+		/*memset(&password[0], 0xaa, ENCRYPT_BYTE);*/
+		if (vhd_set_key(s, password) < 0)
+			goto fail;
+                DPRINTF("Set password for encrypted disk");
+	}
+#endif
+
 	if (err) {
 		libvhd_set_log_level(1);
 		err = vhd_open(&s->vhd, name, o_flags);
@@ -1661,6 +1906,15 @@ schedule_data_write(struct vhd_state *s, td_request_t treq, vhd_flag_t flags)
 	if (!req)
 		return -EBUSY;
 
+#ifdef XS_VHD
+	if (s->vhd.footer.encrypt_method == VHD_CRYPT_AES){
+
+		encrypt_sectors(s, treq.sec, treq.buf,
+				treq.buf, treq.secs, 1,
+				&s->aes_encrypt_key);
+	}
+#endif
+
 	req->treq  = treq;
 	req->flags = flags;
 	req->op    = VHD_OP_DATA_WRITE;
@@ -2300,6 +2554,15 @@ static void
 finish_data_read(struct vhd_request *req)
 {
 	struct vhd_state *s = req->state;
+
+#ifdef XS_VHD
+	if (s->vhd.footer.encrypt_method == VHD_CRYPT_AES) {
+
+		encrypt_sectors(s, req->treq.sec, req->treq.buf,
+				req->treq.buf, req->treq.secs, 0,
+				&s->aes_decrypt_key);
+	}
+#endif
 
 	DBG(TLOG_DBG, "lsec 0x%08"PRIx64", blk: 0x%04"PRIx64"\n", 
 	    req->treq.sec, req->treq.sec / s->spb);

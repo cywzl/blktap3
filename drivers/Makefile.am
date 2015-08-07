@@ -2,7 +2,7 @@ AM_CFLAGS  = -Wall
 AM_CFLAGS += -Werror
 # TODO add -Wextra
 
-AM_CPPFLAGS  = -D_GNU_SOURCE
+AM_CPPFLAGS  = -D_GNU_SOURCE -DSYS_HALT_DEBUG -DXS_VHD
 AM_CPPFLAGS += -I$(top_srcdir)/include
 
 libexec_PROGRAMS = tapdisk
@@ -16,7 +16,6 @@ tapdisk_stream_LDADD = libtapdisk.la
 
 sbin_PROGRAMS  = td-util
 sbin_PROGRAMS += td-rated
-sbin_PROGRAMS += qcow-create
 LDADD = libtapdisk.la
 
 td_util_SOURCES = td.c
@@ -83,6 +82,7 @@ libtapdisk_la_SOURCES += md5.c
 libtapdisk_la_SOURCES += md5.h
 
 libtapdisk_la_SOURCES += block-aio.c
+libtapdisk_la_SOURCES += block-aio.h
 libtapdisk_la_SOURCES += block-ram.c
 libtapdisk_la_SOURCES += block-cache.c
 libtapdisk_la_SOURCES += block-vhd.c
@@ -92,7 +92,6 @@ libtapdisk_la_SOURCES += block-vindex.c
 libtapdisk_la_SOURCES += block-lcache.c
 libtapdisk_la_SOURCES += block-llcache.c
 libtapdisk_la_SOURCES += block-nbd.c
-libtapdisk_la_SOURCES += block-qcow.c
 
 # shared ring
 libtapdisk_la_SOURCES += td-blkif.c
@@ -105,7 +104,8 @@ libtapdisk_la_SOURCES += td-stats.c
 libtapdisk_la_SOURCES += td-stats.h
 
 libtapdisk_la_LIBADD  = ../vhd/lib/libvhd.la
-libtapdisk_la_LIBADD += -laio -lz
+libtapdisk_la_LIBADD += -laio
+libtapdisk_la_LIBADD += -lz
 libtapdisk_la_LIBADD += -lxenctrl
 
 logrotatedir = $(sysconfdir)/logrotate.d

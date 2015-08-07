@@ -254,12 +254,22 @@ void vhd_close(vhd_context_t *);
 /* vhd_create: mbytes is the virtual size for BAT/batmap preallocation - see 
  * vhd-util-resize.c
  */
+#ifndef XS_VHD
 int vhd_create(const char *name, uint64_t bytes, int type, uint64_t mbytes,
 		vhd_flag_creat_t);
+#else
+int vhd_create(const char *name, uint64_t bytes, int type, uint64_t mbytes,
+		vhd_flag_creat_t, uint8_t encrypt_method);
+#endif
 /* vhd_snapshot: the bytes parameter is optional and can be 0 if the snapshot 
  * is to have the same size as the (first non-empty) parent */
+#ifndef XS_VHD
 int vhd_snapshot(const char *snapshot, uint64_t bytes, const char *parent,
 		uint64_t mbytes, vhd_flag_creat_t);
+#else
+int vhd_snapshot(const char *snapshot, uint64_t bytes, const char *parent,
+		uint64_t mbytes, vhd_flag_creat_t, uint8_t encrypt_method);
+#endif
 
 int vhd_hidden(vhd_context_t *, int *);
 int vhd_chain_depth(vhd_context_t *, int *);

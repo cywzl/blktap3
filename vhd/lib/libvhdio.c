@@ -289,7 +289,12 @@ _libvhd_io_reset(void)
 		if (rename(child, parent))
 			exit(errno);
 
+#ifndef XS_VHD
 		err = vhd_snapshot(child, 0, parent, 0, 0);
+#else
+		err = vhd_snapshot(child, 0, parent, 0, 0, vhd->footer.encrypt_method);
+#endif
+
 		if (err) {
 			LOG("snapshot of %s failed on reset: %d\n",
 			    child, err);

@@ -30,6 +30,19 @@
 #define VHD_SECTOR_SIZE  512
 #define VHD_SECTOR_SHIFT   9
 
+#ifdef XS_VHD
+/* ---------------------------------------------------------------------- */
+/* Encryption definitions.                                                   */
+/* ---------------------------------------------------------------------- */
+
+#define VHD_CRYPT_NONE 0x00
+#define VHD_CRYPT_AES  0x01
+
+#define ENCRYPT_BIT 256
+#define ENCRYPT_BYTE 32  // ENCRYPT_BIT/8
+#define KEY_LEN ENCRYPT_BYTE*2
+#endif
+
 /* ---------------------------------------------------------------------- */
 /* This is the generic disk footer, used by all disks.                    */
 /* ---------------------------------------------------------------------- */
@@ -51,7 +64,12 @@ struct hd_ftr {
   uuid_t      uuid;            /* Unique disk ID, used for naming parents      */
   char        saved;           /* one-bit -- is this disk/VM in a saved state? */
   char        hidden;          /* tapdisk-specific field: is this vdi hidden?  */
-  char        reserved[426];   /* padding                                      */
+#ifdef	XS_VHD
+  uint8_t		  encrypt_method;
+  char        reserved[425];   /* padding     */
+#else
+  char		  reserved[426];
+#endif
 };
 
 /* VHD cookie string. */

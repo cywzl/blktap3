@@ -33,6 +33,9 @@ vhd_util_create(int argc, char **argv)
 	uint64_t size, msize;
 	int c, sparse, err;
 	vhd_flag_creat_t flags;
+#ifdef XS_VHD
+	uint8_t encrypt_method;
+#endif
 
 	err       = -EINVAL;
 	size      = 0;
@@ -40,12 +43,19 @@ vhd_util_create(int argc, char **argv)
 	sparse    = 1;
 	name      = NULL;
 	flags     = 0;
+#ifdef XS_VHD
+	encrypt_method	= 0;
+#endif
 
 	if (!argc || !argv)
 		goto usage;
 
 	optind = 0;
+#ifndef XS_VHD
 	while ((c = getopt(argc, argv, "n:s:S:rh")) != -1) {
+#else
+	while ((c = getopt(argc, argv, "n:s:S:E:rh")) != -1) {
+#endif
 		switch (c) {
 		case 'n':
 			name = optarg;
@@ -61,6 +71,11 @@ vhd_util_create(int argc, char **argv)
 		case 'r':
 			sparse = 0;
 			break;
+#ifdef XS_VHD
+		case 'E':
+			encrypt_method = atoi(optarg);
+			break;
+#endif
 		case 'h':
 		default:
 			goto usage;
@@ -75,9 +90,15 @@ vhd_util_create(int argc, char **argv)
 		return -EINVAL;
 	}
 
+#ifndef XS_VHD
 	return vhd_create(name, size << 20,
 				  (sparse ? HD_TYPE_DYNAMIC : HD_TYPE_FIXED),
 				  msize << 20, flags);
+#else
+	return vhd_create(name, size << 20,
+				  (sparse ? HD_TYPE_DYNAMIC : HD_TYPE_FIXED),
+				  msize << 20, flags, encrypt_method);
+#endif
 
 usage:
 	printf("options: <-n name> <-s size (MB)> [-r reserve] [-h help] "

@@ -103,6 +103,9 @@ vhd_util_snapshot(int argc, char **argv)
 {
 	vhd_flag_creat_t flags;
 	int c, err, prt_raw, limit, empty_check;
+#ifdef XS_VHD
+	uint8_t encrypt_method;
+#endif
 	char *name, *pname, *backing;
 	char *ppath, __ppath[PATH_MAX];
 	uint64_t size, msize;
@@ -117,6 +120,9 @@ vhd_util_snapshot(int argc, char **argv)
 	flags       = 0;
 	limit       = 0;
 	empty_check = 1;
+#ifdef XS_VHD
+	encrypt_method	= 0;
+#endif
 
 	if (!argc || !argv) {
 		err = -EINVAL;
@@ -124,7 +130,11 @@ vhd_util_snapshot(int argc, char **argv)
 	}
 
 	optind = 0;
+#ifndef XS_VHD
 	while ((c = getopt(argc, argv, "n:p:S:l:meh")) != -1) {
+#else
+	while ((c = getopt(argc, argv, "n:p:S:E:l:meh")) != -1) {
+#endif
 
 		switch (c) {
 		case 'n':
@@ -135,6 +145,11 @@ vhd_util_snapshot(int argc, char **argv)
 			break;
 		case 'S':
 			msize = strtoull(optarg, NULL, 10);
+#ifdef XS_VHD
+		case 'E':
+			encrypt_method = atoi(optarg);
+			break;
+#endif
 		case 'l':
 			limit = strtol(optarg, NULL, 10);
 			break;
@@ -207,7 +222,11 @@ vhd_util_snapshot(int argc, char **argv)
 			goto out;
 	}
 
+#ifndef XS_VHD
 	err = vhd_snapshot(name, size, backing, msize << 20, flags);
+#else
+	err = vhd_snapshot(name, size, backing, msize << 20, flags, encrypt_method);
+#endif
 
 out:
 	free(backing);

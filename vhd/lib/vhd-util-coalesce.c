@@ -550,7 +550,11 @@ vhd_util_coalesce_open_output(vhd_context_t *dst,
 		return -errno;
 	}
 
+#ifndef XS_VHD
 	err = vhd_create(name, src->footer.curr_size, HD_TYPE_DYNAMIC, 0, 0);
+#else
+	err = vhd_create(name, src->footer.curr_size, HD_TYPE_DYNAMIC, 0, 0, src->footer.encrypt_method);
+#endif
 	if (err) {
 		printf("error creating %s: %d\n", name, err);
 		return err;

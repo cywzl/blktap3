@@ -63,12 +63,6 @@ static const disk_info_t ram_disk = {
        1,
 };
 
-static const disk_info_t qcow_disk = {
-       "qcow",
-       "qcow disk (qcow)",
-       0,
-};
-
 static const disk_info_t block_cache_disk = {
        "bc",
        "block cache image (bc)",
@@ -130,7 +124,6 @@ const disk_info_t *tapdisk_disk_types[] = {
 	[DISK_TYPE_VHDSYNC]	= &vhdsync_disk,
 	[DISK_TYPE_VHD]	= &vhd_disk,
 	[DISK_TYPE_RAM]	= &ram_disk,
-	[DISK_TYPE_QCOW]	= &qcow_disk,
 	[DISK_TYPE_BLOCK_CACHE] = &block_cache_disk,
 	[DISK_TYPE_VINDEX]	= &vhd_index_disk,
 	[DISK_TYPE_LOG]	= &log_disk,
@@ -151,7 +144,6 @@ extern struct tap_disk tapdisk_vhdsync;
 #endif
 extern struct tap_disk tapdisk_vhd;
 extern struct tap_disk tapdisk_ram;
-extern struct tap_disk tapdisk_qcow;
 extern struct tap_disk tapdisk_block_cache;
 extern struct tap_disk tapdisk_vhd_index;
 #if 0
@@ -173,7 +165,6 @@ const struct tap_disk *tapdisk_disk_drivers[] = {
 	[DISK_TYPE_VHD]         = &tapdisk_vhd,
 	[DISK_TYPE_RAM]         = &tapdisk_ram,
 
-	[DISK_TYPE_QCOW]        = &tapdisk_qcow,
 
 	[DISK_TYPE_BLOCK_CACHE] = &tapdisk_block_cache,
 	[DISK_TYPE_VINDEX]      = &tapdisk_vhd_index,

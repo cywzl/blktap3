@@ -281,7 +281,11 @@ vhd_validate_footer_impl(vhd_footer_t *footer, bool suppress_invalid_footer_warn
 		}
 		return -EINVAL;
 	}
-
+#ifdef XS_VHD
+	if (footer->encrypt_method != 0){
+		VHDLOG("Vhd Image %s Encrypted with method: 0x%x", footer->uuid, footer->encrypt_method);
+	}
+#endif
 	return 0;
 }
 
@@ -2664,8 +2668,13 @@ vhd_close(vhd_context_t *ctx)
 	memset(ctx, 0, sizeof(vhd_context_t));
 }
 
+#ifndef XS_VHD
 static inline void
 vhd_initialize_footer(vhd_context_t *ctx, int type, uint64_t size)
+#else
+static inline void
+vhd_initialize_footer(vhd_context_t *ctx, int type, uint64_t size, uint8_t encrypt_method)
+#endif
 {
 	memset(&ctx->footer, 0, sizeof(vhd_footer_t));
 	memcpy(ctx->footer.cookie, HD_COOKIE, sizeof(ctx->footer.cookie));
@@ -2679,6 +2688,9 @@ vhd_initialize_footer(vhd_context_t *ctx, int type, uint64_t size)
 	ctx->footer.geometry     = vhd_chs(size);
 	ctx->footer.type         = type;
 	ctx->footer.saved        = 0;
+#ifdef XS_VHD
+	ctx->footer.encrypt_method	= encrypt_method;
+#endif
 	ctx->footer.data_offset  = 0xFFFFFFFFFFFFFFFFULL;
 	strcpy(ctx->footer.crtr_app, "tap");
 	uuid_generate(ctx->footer.uuid);
@@ -3102,9 +3114,15 @@ vhd_set_virt_size(vhd_context_t *ctx, uint64_t size)
 	return vhd_write_footer(ctx, &ctx->footer);
 }
 
+#ifndef XS_VHD
 static int
 __vhd_create(const char *name, const char *parent, uint64_t bytes, int type,
 		uint64_t mbytes, vhd_flag_creat_t flags)
+#else
+static int
+__vhd_create(const char *name, const char *parent, uint64_t bytes, int type, uint8_t encrypt_method,
+		uint64_t mbytes, vhd_flag_creat_t flags)
+#endif
 {
 	int err;
 	off64_t off;
@@ -3151,7 +3169,12 @@ __vhd_create(const char *name, const char *parent, uint64_t bytes, int type,
 		goto out;
 	}
 
-	err = vhd_test_file_fixed(ctx.file, &ctx.is_block);
+#ifndef XS_VHD
+	vhd_initialize_footer(&ctx, type, size);
+#else
+	vhd_initialize_footer(&ctx, type, size, encrypt_method);
+#endif
+
 	if (err)
 		goto out;
 
@@ -3234,18 +3257,38 @@ out:
 	return err;
 }
 
+#ifndef XS_VHD
 int
 vhd_create(const char *name, uint64_t bytes, int type, uint64_t mbytes,
 		vhd_flag_creat_t flags)
+#else
+int
+vhd_create(const char *name, uint64_t bytes, int type, uint64_t mbytes,
+		vhd_flag_creat_t flags, uint8_t encrypt_method)
+#endif
 {
+#ifndef XS_VHD
 	return __vhd_create(name, NULL, bytes, type, mbytes, flags);
+#else
+	return __vhd_create(name, NULL, bytes, type, encrypt_method, mbytes, flags);
+#endif
 }
 
+#ifndef XS_VHD
 int
 vhd_snapshot(const char *name, uint64_t bytes, const char *parent,
 		uint64_t mbytes, vhd_flag_creat_t flags)
+#else
+int
+vhd_snapshot(const char *name, uint64_t bytes, const char *parent,
+		uint64_t mbytes, vhd_flag_creat_t flags, uint8_t encrypt_method)
+#endif
 {
+#ifndef XS_VHD
 	return __vhd_create(name, parent, bytes, HD_TYPE_DIFF, mbytes, flags);
+#else
+	return __vhd_create(name, parent, bytes, HD_TYPE_DIFF, encrypt_method, mbytes, flags);
+#endif
 }
 
 static int
