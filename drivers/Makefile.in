@@ -40,8 +40,7 @@ build_triplet = @build@
 host_triplet = @host@
 libexec_PROGRAMS = tapdisk$(EXEEXT)
 noinst_PROGRAMS = tapdisk-stream$(EXEEXT)
-sbin_PROGRAMS = td-util$(EXEEXT) td-rated$(EXEEXT) \
-	qcow-create$(EXEEXT)
+sbin_PROGRAMS = td-util$(EXEEXT) td-rated$(EXEEXT) qcow-create$(EXEEXT) 
 subdir = drivers
 DIST_COMMON = $(dist_bugtool_DATA) $(dist_bugtooltd_DATA) \
 	$(dist_logrotate_DATA) $(srcdir)/Makefile.am \
@@ -63,11 +62,10 @@ am_libtapdisk_la_OBJECTS = scheduler.lo tapdisk-control.lo \
 	tapdisk-filter.lo tapdisk-logfile.lo tapdisk-log.lo \
 	tapdisk-utils.lo tapdisk-syslog.lo tapdisk-stats.lo \
 	tapdisk-storage.lo tapdisk-loglimit.lo io-optimize.lo lock.lo \
-	aes.lo blk_linux.lo atomicio.lo tapdisk-fdreceiver.lo md5.lo \
-	block-aio.lo block-ram.lo block-cache.lo block-vhd.lo \
-	block-valve.lo block-vindex.lo block-lcache.lo \
-	block-llcache.lo block-nbd.lo block-qcow.lo td-blkif.lo \
-	td-req.lo td-ctx.lo td-stats.lo
+	atomicio.lo tapdisk-fdreceiver.lo md5.lo block-aio.lo \
+	block-ram.lo block-cache.lo block-vhd.lo block-valve.lo \
+	block-vindex.lo block-lcache.lo block-llcache.lo block-nbd.lo \
+	td-blkif.lo td-req.lo td-ctx.lo td-stats.lo aes.lo blk_linux.lo block-qcow.lo
 libtapdisk_la_OBJECTS = $(am_libtapdisk_la_OBJECTS)
 am__installdirs = "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(sbindir)" \
 	"$(DESTDIR)$(bugtooldir)" "$(DESTDIR)$(bugtooltddir)" \
@@ -75,10 +73,6 @@ am__installdirs = "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(sbindir)" \
 libexecPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 sbinPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(libexec_PROGRAMS) $(noinst_PROGRAMS) $(sbin_PROGRAMS)
-qcow_create_SOURCES = qcow-create.c
-qcow_create_OBJECTS = qcow-create.$(OBJEXT)
-qcow_create_LDADD = $(LDADD)
-qcow_create_DEPENDENCIES = libtapdisk.la
 am_tapdisk_OBJECTS = tapdisk2.$(OBJEXT)
 tapdisk_OBJECTS = $(am_tapdisk_OBJECTS)
 tapdisk_DEPENDENCIES = libtapdisk.la
@@ -88,10 +82,13 @@ tapdisk_stream_DEPENDENCIES = libtapdisk.la
 td_rated_SOURCES = td-rated.c
 td_rated_OBJECTS = td-rated.$(OBJEXT)
 td_rated_LDADD = $(LDADD)
-td_rated_DEPENDENCIES = libtapdisk.la
 am_td_util_OBJECTS = td.$(OBJEXT)
 td_util_OBJECTS = $(am_td_util_OBJECTS)
 td_util_DEPENDENCIES = libtapdisk.la
+qcow_create_SOURCES = qcow-create.c
+qcow_create_OBJECTS = qcow-create.$(OBJEXT)
+qcow_create_LDADD = $(LDADD)
+qcow_create_DEPENDENCIES = libtapdisk.la
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -103,11 +100,10 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libtapdisk_la_SOURCES) qcow-create.c $(tapdisk_SOURCES) \
-	tapdisk-stream.c td-rated.c $(td_util_SOURCES)
-DIST_SOURCES = $(libtapdisk_la_SOURCES) qcow-create.c \
-	$(tapdisk_SOURCES) tapdisk-stream.c td-rated.c \
-	$(td_util_SOURCES)
+SOURCES = $(libtapdisk_la_SOURCES) $(tapdisk_SOURCES) tapdisk-stream.c \
+	td-rated.c $(td_util_SOURCES) qcow-create.c 
+DIST_SOURCES = $(libtapdisk_la_SOURCES) $(tapdisk_SOURCES) \
+	tapdisk-stream.c td-rated.c $(td_util_SOURCES) qcow-create.c 
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -228,13 +224,14 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AM_CFLAGS = -Wall -Werror
 # TODO add -Wextra
-AM_CPPFLAGS = -D_GNU_SOURCE -DSYS_HALT_DEBUG -I$(top_srcdir)/include
+AM_CPPFLAGS = -D_GNU_SOURCE -I$(top_srcdir)/include
 tapdisk_SOURCES = tapdisk2.c
 tapdisk_LDADD = libtapdisk.la
 tapdisk_stream_LDADD = libtapdisk.la
-LDADD = libtapdisk.la
 td_util_SOURCES = td.c
 td_util_LDADD = libtapdisk.la
+qcow_create_SOURCES = qcow-create.c
+qcow_create_LDADD = libtapdisk.la
 noinst_LTLIBRARIES = libtapdisk.la
 
 # shared ring
@@ -253,11 +250,11 @@ libtapdisk_la_SOURCES = tapdisk.h scheduler.c scheduler.h \
 	tapdisk-storage.c tapdisk-storage.h tapdisk-loglimit.c \
 	tapdisk-loglimit.h io-optimize.c io-optimize.h lock.c lock.h \
 	atomicio.c atomicio.h tapdisk-fdreceiver.c \
-	tapdisk-fdreceiver.h md5.c md5.h block-aio.c block-aio.h \
-	block-ram.c block-cache.c block-vhd.c block-valve.c \
-	block-valve.h block-vindex.c block-lcache.c block-llcache.c \
-	block-nbd.c td-blkif.c td-blkif.h td-req.c td-req.h td-ctx.c \
-	td-ctx.h td-stats.c td-stats.h
+	tapdisk-fdreceiver.h md5.c md5.h block-aio.c block-ram.c \
+	block-cache.c block-vhd.c block-valve.c block-valve.h \
+	block-vindex.c block-lcache.c block-llcache.c block-nbd.c \
+	td-blkif.c td-blkif.h td-req.c td-req.h td-ctx.c td-ctx.h \
+	td-stats.c td-stats.h bswap.h aes.c aes.h blk.h blk_linux.c block-qcow.c
 libtapdisk_la_LIBADD = ../vhd/lib/libvhd.la -laio -lz -lxenctrl
 logrotatedir = $(sysconfdir)/logrotate.d
 dist_logrotate_DATA = blktap
@@ -372,9 +369,6 @@ clean-sbinPROGRAMS:
 	  echo " rm -f $$p $$f"; \
 	  rm -f $$p $$f ; \
 	done
-qcow-create$(EXEEXT): $(qcow_create_OBJECTS) $(qcow_create_DEPENDENCIES) 
-	@rm -f qcow-create$(EXEEXT)
-	$(LINK) $(qcow_create_LDFLAGS) $(qcow_create_OBJECTS) $(qcow_create_LDADD) $(LIBS)
 tapdisk$(EXEEXT): $(tapdisk_OBJECTS) $(tapdisk_DEPENDENCIES) 
 	@rm -f tapdisk$(EXEEXT)
 	$(LINK) $(tapdisk_LDFLAGS) $(tapdisk_OBJECTS) $(tapdisk_LDADD) $(LIBS)
@@ -387,6 +381,9 @@ td-rated$(EXEEXT): $(td_rated_OBJECTS) $(td_rated_DEPENDENCIES)
 td-util$(EXEEXT): $(td_util_OBJECTS) $(td_util_DEPENDENCIES) 
 	@rm -f td-util$(EXEEXT)
 	$(LINK) $(td_util_LDFLAGS) $(td_util_OBJECTS) $(td_util_LDADD) $(LIBS)
+qcow-create$(EXEEXT): $(qcow_create_OBJECTS) $(qcow_create_DEPENDENCIES) 
+	@rm -f qcow-create$(EXEEXT)
+	$(LINK) $(qcow_create_LDFLAGS) $(qcow_create_OBJECTS) $(qcow_create_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -394,9 +391,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aes.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/atomicio.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/blk_linux.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/block-aio.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/block-cache.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/block-lcache.Plo@am__quote@
@@ -409,8 +404,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/block-vindex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/io-optimize.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lock.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aes.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/md5.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qcow-create.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/blk_linux.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scheduler.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tapdisk-blktap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tapdisk-control.Plo@am__quote@
@@ -439,6 +435,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/td-req.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/td-stats.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/td.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qcow-create.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

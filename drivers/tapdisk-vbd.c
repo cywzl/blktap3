@@ -118,42 +118,6 @@ tapdisk_vbd_initialize(int rfd, int wfd, uint16_t uuid)
 	return 0;
 }
 
-static inline void
-tapdisk_vbd_add_image(td_vbd_t *vbd, td_image_t *image)
-{
-	list_add_tail(&image->next, &vbd->images);
-}
-
-static inline int
-tapdisk_vbd_is_last_image(td_vbd_t *vbd, td_image_t *image)
-{
-	return list_is_last(&image->next, &vbd->images);
-}
-
-static inline td_image_t *
-tapdisk_vbd_first_image(td_vbd_t *vbd)
-{
-	td_image_t *image = NULL;
-	if (!list_empty(&vbd->images))
-		image = list_entry(vbd->images.next, td_image_t, next);
-	return image;
-}
-
-static inline td_image_t *
-tapdisk_vbd_last_image(td_vbd_t *vbd)
-{
-	td_image_t *image = NULL;
-	if (!list_empty(&vbd->images))
-		image = list_entry(vbd->images.prev, td_image_t, next);
-	return image;
-}
-
-static inline td_image_t *
-tapdisk_vbd_next_image(td_image_t *image)
-{
-	return list_entry(image->next.next, td_image_t, next);
-}
-
 static int
 tapdisk_vbd_validate_chain(td_vbd_t *vbd)
 {
@@ -1223,38 +1187,12 @@ tapdisk_vbd_request_should_retry(td_vbd_t *vbd, td_vbd_request_t *vreq)
 static void
 tapdisk_vbd_complete_vbd_request(td_vbd_t *vbd, td_vbd_request_t *vreq)
 {
-#ifdef SYS_HALT_DEBUG
-	char* vreq_op;
-	struct timeval tv;
-
-	switch(vreq->op){
-	case	TD_OP_READ:
-		vreq_op = "TD_OP_READ";
-		break;
-	case	TD_OP_WRITE:
-		vreq_op = "TD_OP_WRITE";
-		break;
-	default:
-		vreq_op = "UNKNOWN(SHIT!)";
-	}
-	gettimeofday(&tv, NULL);
-	DPRINTF("VBD REQ[FAILORCOMPLETE][%05llu.%06llu]: START_SECTOR=0x%016x, VREQ OP=%s, ERROR=%s, SUBMITTING=%d, SECS_PENDING=%d", (long long)tv.tv_sec, (long long)tv.tv_usec, (unsigned int)vreq->sec, vreq_op, strerror(abs(vreq->error)), vreq->submitting, vreq->secs_pending);
-#endif
 	if (!vreq->submitting && !vreq->secs_pending) {
 		if (vreq->error &&
-		    tapdisk_vbd_request_should_retry(vbd, vreq)){
+		    tapdisk_vbd_request_should_retry(vbd, vreq))
 			tapdisk_vbd_move_request(vreq, &vbd->failed_requests);
-#ifdef SYS_HALT_DEBUG
-			gettimeofday(&tv, NULL);
-			DPRINTF("VBD REQ[FAILED][%05llu.%06llu]: START_SECTOR=0x%016x, VREQ OP=%s, ERROR=%s", (long long)tv.tv_sec, (long long)tv.tv_usec, (unsigned int)vreq->sec, vreq_op, strerror(abs(vreq->error)));
-#endif
-		}else{
-#ifdef SYS_HALT_DEBUG
-			gettimeofday(&tv, NULL);
-			DPRINTF("VBD REQ[COMPLETE][%05llu.%06llu]: START_SECTOR=0x%016x, VREQ OP=%s", (long long)tv.tv_sec, (long long)tv.tv_usec, (unsigned int)vreq->sec, vreq_op);
-#endif
+		else
 			tapdisk_vbd_move_request(vreq, &vbd->completed_requests);
-		}
 	}
 }
 
@@ -1393,23 +1331,6 @@ tapdisk_vbd_complete_td_request(td_request_t treq, int res)
 	vreq  = treq.vreq;
 	vbd   = vreq->vbd;
 
-#ifdef SYS_HALT_DEBUG
-	char* vreq_op;
-	switch(vreq->op){
-	case	TD_OP_READ:
-		vreq_op = "TD_OP_READ";
-		break;
-	case	TD_OP_WRITE:
-		vreq_op = "TD_OP_WRITE";
-		break;
-	default:
-		vreq_op = "UNKNOWN(SHIT!)";
-	}
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	DPRINTF("VBD REQ[QUEUEWRITECOMPLETE][%05llu.%06llu]: START_SECTOR=0x%016x, VREQ OP=%s", (long long)tv.tv_sec, (long long)tv.tv_usec, (unsigned int)vreq->sec, vreq_op);
-#endif
-
 	tapdisk_vbd_mark_progress(vbd);
 
 	if (abs(res) == ENOSPC && td_flag_test(image->flags,
@@ -1481,22 +1402,6 @@ tapdisk_vbd_issue_request(td_vbd_t *vbd, td_vbd_request_t *vreq)
 	vreq->last_try = vbd->ts;
 
 	tapdisk_vbd_move_request(vreq, &vbd->pending_requests);
-#ifdef SYS_HALT_DEBUG
-	char* vreq_op;
-	struct timeval tv;
-	switch(vreq->op){
-	case	TD_OP_READ:
-		vreq_op = "TD_OP_READ";
-		break;
-	case	TD_OP_WRITE:
-		vreq_op = "TD_OP_WRITE";
-		break;
-	default:
-		vreq_op = "UNKNOWN(SHIT!)";
-	}
-	gettimeofday(&tv, NULL);
-	DPRINTF("VBD REQ[INPENDING][%05llu.%06llu]: START_SECTOR=0x%016x, VREQ OP=%s", (long long)tv.tv_sec, (long long)tv.tv_usec, (unsigned int)vreq->sec, vreq_op);
-#endif
 
 	err = tapdisk_vbd_check_queue(vbd);
 	if (err) {
@@ -1797,27 +1702,11 @@ tapdisk_vbd_start_nbdserver(td_vbd_t *vbd)
 	return 0;
 }
 
-
-static int
-tapdisk_vbd_reqs_outstanding(td_vbd_t *vbd)
-{
-	int new, pending, failed, completed;
-
-	ASSERT(vbd);
-
-	tapdisk_vbd_queue_count(vbd, &new, &pending, &failed, &completed);
-
-	return new + pending + failed + completed;
-}
-
-
 void
 tapdisk_vbd_stats(td_vbd_t *vbd, td_stats_t *st)
 {
 	td_image_t *image, *next;
     struct td_xenblkif *blkif;
-	const bool read_caching =
-		TD_OPEN_NO_O_DIRECT == (vbd->flags & TD_OPEN_NO_O_DIRECT);
 
 	tapdisk_stats_enter(st, '{');
 	tapdisk_stats_field(st, "name", "s", vbd->name);
@@ -1855,14 +1744,6 @@ tapdisk_vbd_stats(td_vbd_t *vbd, td_stats_t *st)
 	tapdisk_stats_field(st,
 			"nbd_mirror_failed",
 			"d", vbd->nbd_mirror_failed);
-
-	tapdisk_stats_field(st,
-			"reqs_oustanding",
-			"d", tapdisk_vbd_reqs_outstanding(vbd));
-
-	tapdisk_stats_field(st,
-			"read_caching",
-			"s",  read_caching ? "true": "false");
 
 	tapdisk_stats_leave(st, '}');
 }

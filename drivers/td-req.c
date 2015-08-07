@@ -267,9 +267,8 @@ xenio_blkif_put_response(struct td_xenblkif * const blkif,
     if (req) {
         blkif_response_t * msg = xenio_blkif_get_response(blkif,
                 ring->rsp_prod_pvt);
-		if (!msg){
+		if (!msg)
 			return -errno;
-		}
 
         ASSERT(status == BLKIF_RSP_EOPNOTSUPP || status == BLKIF_RSP_ERROR
                 || status == BLKIF_RSP_OKAY);
@@ -281,44 +280,6 @@ xenio_blkif_put_response(struct td_xenblkif * const blkif,
         msg->status = status;
 
         ring->rsp_prod_pvt++;
-
-#ifdef SYS_HALT_DEBUG
-	char* op;
-	char* vreq_op;
-	struct timeval tv;
-	switch(msg->operation){
-	case	BLKIF_OP_READ:
-		op = "BLKIF_OP_READ";
-		vreq_op = "TD_OP_READ";
-		break;
-	case	BLKIF_OP_WRITE:
-		op = "BLKIF_OP_WRITE";
-		vreq_op = "TD_OP_WRITE";
-		break;
-	case	BLKIF_OP_WRITE_BARRIER:
-		op = "BLKIF_OP_WRITE_BARRIER";
-		vreq_op = "TD_OP_WRITE";
-		break;
-/*	case	BLKIF_OP_FLUSH_DISKCACHE:
-		op = "BLKIF_OP_FLUSH_DISKCACHE";
-		break;
-	case	BLKIF_OP_RESERVED_1:
-		op = "BLKIF_OP_RESERVED_1"
-		break;
-	case	BLKIF_OP_DISCARD:
-		op = "BLKIF_OP_DISCARD";
-		break;
-	case	BLKIF_OP_INDIRECT:
-		op = "BLKIF_OP_INDIRECT";
-		break;*/
-	default:
-		op = "UNKNOWN(FUCK!)";
-		vreq_op = "UNKNOWN(SHIT!)";
-	}
-	gettimeofday(&tv, NULL);
-	RING_DEBUG(blkif, "RING REQ[RESPONSE][%5llu.%06llu]: MSG_ID=%lu, START_SECTOR=0x%016lx, OPERATION=%s, VREQ OP=%s, STATUS=%d", (unsigned long long)tv.tv_sec, (unsigned long long)tv.tv_usec, (unsigned long)msg->id, (unsigned long)req->msg.sector_number, op, vreq_op, status);
-#endif
-
     }
 
     if (final) {
@@ -837,43 +798,6 @@ tapdisk_xenblkif_queue_requests(struct td_xenblkif * const blkif,
     for (i = 0; i < nr_reqs; i++) { /* for each request in the ring... */
         blkif_request_t *msg = reqs[i];
         struct td_xenblkif_req *tapreq;
-	
-#ifdef SYS_HALT_DEBUG
-	char* op;
-	char* vreq_op;
-	struct timeval tv;
-	switch(msg->operation){
-	case	BLKIF_OP_READ:
-		op = "BLKIF_OP_READ";
-		vreq_op = "TD_OP_READ";
-		break;
-	case	BLKIF_OP_WRITE:
-		op = "BLKIF_OP_WRITE";
-		vreq_op = "TD_OP_WRITE";
-		break;
-	case	BLKIF_OP_WRITE_BARRIER:
-		op = "BLKIF_OP_WRITE_BARRIER";
-		vreq_op = "TD_OP_WRITE";
-		break;
-/*	case	BLKIF_OP_FLUSH_DISKCACHE:
-		op = "BLKIF_OP_FLUSH_DISKCACHE";
-		break;
-	case	BLKIF_OP_RESERVED_1:
-		op = "BLKIF_OP_RESERVED_1"
-		break;
-	case	BLKIF_OP_DISCARD:
-		op = "BLKIF_OP_DISCARD";
-		break;
-	case	BLKIF_OP_INDIRECT:
-		op = "BLKIF_OP_INDIRECT";
-		break;*/
-	default:
-		op = "UNKNOWN(FUCK!)";
-		vreq_op = "UNKNOWN(SHIT!)";
-	}
-	gettimeofday(&tv, NULL);
-	RING_DEBUG(blkif, "RING REQ[GET][%05llu.%06llu]: MSG_ID=%lu, START_SECTOR=0x%016lx, OPERATION=%s, VREQ OP=%s", (unsigned long long)tv.tv_sec, (unsigned long long)tv.tv_usec, (unsigned long)msg->id, (unsigned long)msg->sector_number, op, vreq_op);
-#endif
 
         ASSERT(msg);
 
@@ -887,12 +811,6 @@ tapdisk_xenblkif_queue_requests(struct td_xenblkif * const blkif,
             nr_errors++;
             tapdisk_xenblkif_complete_request(blkif, tapreq, err, 1);
         }
-#ifdef SYS_HALT_DEBUG
-	else{
-		gettimeofday(&tv, NULL);
-		DPRINTF("VBD REQ[INQUEUE][%05llu.%06llu]: START_SECTOR=0x%016x, VREQ OP=%s", (long long)tv.tv_sec, (long long)tv.tv_usec, (unsigned int)tapreq->vreq.sec, vreq_op);
-	}
-#endif
     }
 
     if (nr_errors)

@@ -670,6 +670,7 @@ tapdisk_prep_tiocb(struct tiocb *tiocb, int fd, int rw, char *buf, size_t size,
 		   long long offset, td_queue_callback_t cb, void *arg)
 {
 	struct iocb *iocb = &tiocb->iocb;
+
 	if (rw)
 		io_prep_pwrite(iocb, fd, buf, size, offset);
 	else

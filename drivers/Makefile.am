@@ -2,7 +2,7 @@ AM_CFLAGS  = -Wall
 AM_CFLAGS += -Werror
 # TODO add -Wextra
 
-AM_CPPFLAGS  = -D_GNU_SOURCE -DSYS_HALT_DEBUG
+AM_CPPFLAGS  = -D_GNU_SOURCE
 AM_CPPFLAGS += -I$(top_srcdir)/include
 
 libexec_PROGRAMS = tapdisk
@@ -83,7 +83,6 @@ libtapdisk_la_SOURCES += md5.c
 libtapdisk_la_SOURCES += md5.h
 
 libtapdisk_la_SOURCES += block-aio.c
-libtapdisk_la_SOURCES += block-aio.h
 libtapdisk_la_SOURCES += block-ram.c
 libtapdisk_la_SOURCES += block-cache.c
 libtapdisk_la_SOURCES += block-vhd.c
@@ -106,8 +105,7 @@ libtapdisk_la_SOURCES += td-stats.c
 libtapdisk_la_SOURCES += td-stats.h
 
 libtapdisk_la_LIBADD  = ../vhd/lib/libvhd.la
-libtapdisk_la_LIBADD += -laio
-libtapdisk_la_LIBADD += -lz
+libtapdisk_la_LIBADD += -laio -lz
 libtapdisk_la_LIBADD += -lxenctrl
 
 logrotatedir = $(sysconfdir)/logrotate.d
