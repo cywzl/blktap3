@@ -1,6 +1,6 @@
 Summary: blktap user space utilities
 Name: blktap
-Version: 3.0.0.xs970
+Version: 3.0.0.xs992
 Release: %release
 License: GPLv2 or BSD
 Group: System/Hypervisor
@@ -38,6 +38,9 @@ Blktap and VHD development files.
 #%patch1 -p1
 
 %build
+CFLAGS='-O0 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic'
+CXXFLAGS='-O0 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic'
+FFLAGS='-O0 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic'
 %configure
 make
 
@@ -79,5 +82,5 @@ make install DESTDIR=%{buildroot}
 [ ! -x /sbin/chkconfig ] || chkconfig --add tapback
 
 %changelog
-* Wed Sep 17 2014 Citrix Systems, Inc. <www.citrix.com> [3.0.0.xs970 xs6.4.96]
+* Wed Sep 17 2014 Citrix Systems, Inc. <www.citrix.com> [3.0.0.xs992-xs6.5.0]
 - Build blktap.
