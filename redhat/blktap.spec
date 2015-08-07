@@ -6,7 +6,7 @@ License: GPLv2 or BSD
 Group: System/Hypervisor
 Source0: %{name}-%{version}.tar.bz2
 
-Patch1: %{name}-udev-ignore-tapdevs.patch
+#Patch1: %{name}-udev-ignore-tapdevs.patch
 BuildRoot: %{_tmppath}/%{name}-%{release}-buildroot
 Obsoletes: xen-blktap
 BuildRequires: e2fsprogs-devel, libaio-devel
@@ -35,7 +35,7 @@ Blktap and VHD development files.
 
 %prep
 %setup -q
-%patch1 -p1
+#%patch1 -p1
 
 %build
 %configure
