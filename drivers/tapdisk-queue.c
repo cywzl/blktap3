@@ -463,7 +463,7 @@ tapdisk_lio_event(event_id_t id, char mode, void *private)
 		if (((struct tiocb*)lio->aio_events[i].obj->data)->submit_time.tv_nsec != 0 || ((struct tiocb*)lio->aio_events[i].obj->data)->submit_time.tv_sec != 0){
 			if (!clock_gettime(CLOCK_MONOTONIC, &tp)){
 				((struct tiocb*)lio->aio_events[i].obj->data)->finish_time = tp;
-				update_time(((struct tiocb*)lio->aio_events[i].obj->data)->submit_time, ((struct tiocb*)lio->aio_events[i].obj->data)->finish_time);
+				update_io_interval(((struct tiocb*)lio->aio_events[i].obj->data)->submit_time, ((struct tiocb*)lio->aio_events[i].obj->data)->finish_time);
 			}
 		}
 	}

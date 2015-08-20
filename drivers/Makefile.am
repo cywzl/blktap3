@@ -2,7 +2,7 @@ AM_CFLAGS  = -Wall
 AM_CFLAGS += -Werror
 # TODO add -Wextra
 
-AM_CPPFLAGS  = -D_GNU_SOURCE -DXS_VHD -DPERF_PROFILE
+AM_CPPFLAGS  = -D_GNU_SOURCE -DXS_VHD #-DPERF_PROFILE
 AM_CPPFLAGS += -I$(top_srcdir)/include -lrt
 
 libexec_PROGRAMS = tapdisk

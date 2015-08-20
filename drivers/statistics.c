@@ -7,8 +7,10 @@
 
 #include "tapdisk-log.h"
 
-unsigned long total_time_elapsed = 0;
+unsigned long total_io_interval = 0;
+unsigned long total_req_inqueue_time = 0;
 long total_ios = 0;
+long total_req = 0;
 
 pthread_mutex_t statistics_mutex;
 pthread_t statistics_thread_id;
@@ -22,10 +24,13 @@ void* log_time_statistics(void* arg){
 		sleep(STAT_TIME_MS);
 
 		pthread_mutex_lock(&statistics_mutex);
-		if (total_ios != 0)
-			DPRINTF("Avg I/O operation latency during the last %d s: %lu, (total elapsed:%lu)", STAT_TIME_MS, total_time_elapsed / total_ios, total_time_elapsed );
-		total_time_elapsed = 0;
+		if (total_ios != 0 && total_req != 0)
+			DPRINTF("Avg I/O operation latency during the last %d s: %lu; Avg request in queue time(clock ticks): %lu; total io ops: %lu; total reqs: %lu",
+					STAT_TIME_MS, total_io_interval / total_ios, total_req_inqueue_time/total_req, total_ios, total_req);
+		total_io_interval = 0;
+		total_req_inqueue_time = 0;
 		total_ios = 0;
+		total_req = 0;
 		pthread_mutex_unlock(&statistics_mutex);
 	}
 	return NULL;
@@ -40,7 +45,7 @@ int start_collecting(){
 	return pthread_create(&statistics_thread_id, NULL, log_time_statistics, NULL);
 }
 
-void update_time(struct timespec start_time, struct timespec finish_time){
+void update_io_interval(struct timespec start_time, struct timespec finish_time){
 
 	long tv = 0;
 
@@ -53,8 +58,25 @@ void update_time(struct timespec start_time, struct timespec finish_time){
 	}
 	/*DPRINTF("Update Time Stats: io start at: %ld secs, %ld nanosecs; finish at: %ld secs, %ld nanosecs, elapsed: %lu", start_time.tv_sec, start_time.tv_nsec, finish_time.tv_sec, finish_time.tv_nsec, tv);*/
 
-	total_time_elapsed += tv;
+	total_io_interval += tv;
 	total_ios++;
+
+	pthread_mutex_unlock(&statistics_mutex);
+}
+
+void update_req_inqueue_time(unsigned long inqueue_time, unsigned long offqueue_time){
+
+	pthread_mutex_lock(&statistics_mutex);
+
+	/*if(inqueue_time.tv_sec == offqueue_time.tv_sec){
+		tv = offqueue_time.tv_nsec - inqueue_time.tv_nsec;
+	}else{
+		tv = (long)((offqueue_time.tv_sec - inqueue_time.tv_sec)*(1000000000)) + (long)(offqueue_time.tv_nsec - inqueue_time.tv_nsec);
+	}*/
+	/*DPRINTF("Update Time Stats: io start at: %ld secs, %ld nanosecs; finish at: %ld secs, %ld nanosecs, elapsed: %lu", inqueue_time.tv_sec, inqueue_time.tv_nsec, offqueue_time.tv_sec, offqueue_time.tv_nsec, tv);*/
+
+	total_req_inqueue_time += offqueue_time - inqueue_time;
+	total_req++;
 
 	pthread_mutex_unlock(&statistics_mutex);
 }

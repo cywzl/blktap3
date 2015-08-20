@@ -6,7 +6,7 @@
 
 #define STAT_TIME_MS 1
 
-extern unsigned long total_time_elapsed;
+extern unsigned long total_io_interval;
 extern long total_ios ;
 
 extern pthread_mutex_t statistics_mutex;
@@ -18,7 +18,9 @@ int init_statistics();
 
 int start_collecting();
 
-void update_time(struct timespec start_time, struct timespec finish_time);
+void update_io_interval(struct timespec start_time, struct timespec finish_time);
+
+void update_req_inqueue_time(unsigned long inqueue_time, unsigned long offqueue_time);
 
 int stop_collecting();
 

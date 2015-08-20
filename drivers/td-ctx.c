@@ -25,15 +25,29 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <alloca.h>
+#include <time.h>
 
 #include "debug.h"
 #include "tapdisk-server.h"
 #include "td-ctx.h"
 #include "tapdisk-log.h"
+#include "statistics.h"
 
 #define ERROR(_f, _a...)           tlog_syslog(TLOG_WARN, "td-ctx: " _f, ##_a)
 
 LIST_HEAD(_td_xenio_ctxs);
+
+#ifdef PERF_PROFILE
+static __inline__ uint64_t rdtsc(){
+	uint64_t h, l;
+	__asm__ __volatile__ ("xorl %%eax, %%eax\n"
+			 "cpuid\n"
+			 "rdtsc"
+			:"=a"(l), "=d"(h)
+			::"%rbx", "%rcx");
+	return l | ( h << 32);
+}
+#endif
 
 /**
  * TODO releases a pool?
@@ -216,6 +230,10 @@ __xenio_blkif_get_requests(struct td_xenblkif * const blkif,
         blkif_request_t *dst = reqs[n];
 
         xenio_blkif_get_request(blkif, dst, rc);
+
+#ifdef PERF_PROFILE
+        update_req_inqueue_time(dst->timer, rdtsc());
+#endif
 
 		if (unlikely(dst->operation == BLKIF_OP_WRITE_BARRIER))
 			barrier = true;

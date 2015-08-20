@@ -496,7 +496,7 @@ write_message(int fd, dw_message_t *message, struct timeval *timeout)
 int get_key_from_dw(const char *name, char *buf, int buf_size)
 {
 	int fd, err;
-	struct sockaddr_un saddr;
+	struct sockaddr_un saddr, saddr_local;
 	dw_message_t message;
 	struct timeval timeout;
 
@@ -513,7 +513,7 @@ int get_key_from_dw(const char *name, char *buf, int buf_size)
 		return ENAMETOOLONG;
 	}
 
-	fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	fd = socket(AF_UNIX, SOCK_DGRAM, 0);
 	if (fd == -1) {
 		EPRINTF("couldn't create socket for %s: %s\n", name, strerror(errno));
 		return -errno;
@@ -521,9 +521,15 @@ int get_key_from_dw(const char *name, char *buf, int buf_size)
 
 	memset(&saddr, 0, sizeof(saddr));
 	saddr.sun_family = AF_UNIX;
-	strcpy(saddr.sun_path, "/var/run/dw/dw.sock");
+	strcpy(saddr.sun_path, "/tmp/dw.socket");
 
-	err = connect(fd, (const struct sockaddr *)&saddr, sizeof(saddr));
+	memset(&saddr_local, 0, sizeof(saddr_local));
+	saddr_local.sun_family = AF_UNIX;
+	strcpy(saddr_local.sun_path, "/tmp/xapi.dw");
+
+	bind(fd, (const struct sockaddr*)&saddr_local, sizeof(saddr_local));
+
+	/*err = connect(fd, (const struct sockaddr *)&saddr, sizeof(saddr));*/
 	if (err) {
 		EPRINTF("couldn't connect to %s: %d\n", name, errno);
 		close(fd);
