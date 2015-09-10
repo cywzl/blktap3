@@ -53,6 +53,7 @@
 #include <libaio.h>
 #include <sys/mman.h>
 #include <limits.h>
+#include <poll.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/socket.h>
@@ -408,84 +409,42 @@ static int vhd_set_key(struct vhd_state *s, const char *key)
 
 #ifdef XS_VHD
 int
-read_raw(int fd, void *buf, size_t size, struct timeval *timeout)
+read_message(int fd, dw_message_t *message, int timeout)
 {
-	fd_set readfds;
-	size_t offset = 0;
-	int ret;
-
-	while (offset < size) {
-		FD_ZERO(&readfds);
-		FD_SET(fd, &readfds);
-
-		ret = select(fd + 1, &readfds, NULL, NULL, timeout);
-		if (ret == -1)
-			break;
-		else if (FD_ISSET(fd, &readfds)) {
-			ret = read(fd, buf + offset, size - offset);
-			if (ret <= 0)
-				break;
-			offset += ret;
-		} else
-			break;
+	struct pollfd pfd;
+	pfd.fd = fd;
+	pfd.events = POLLIN;
+	int ret = poll(&pfd, 1, timeout);
+	if (ret == -1) {
+		EPRINTF("poll() failed.\n");
+		return -1;
 	}
-
-	if (offset != size) {
-		EPRINTF("failure reading data %zd/%zd\n", offset, size);
-		return -EIO;
+	if (ret == 0) {
+		EPRINTF("timeout.\n");
+		return -1;
 	}
-
-	return 0;
-}
-
-int
-read_message(int fd, dw_message_t *message,
-		     struct timeval *timeout)
-{
-	size_t size = sizeof(dw_message_t);
-	int err;
-
-	err = read_raw(fd, message, size, timeout);
-	if (err)
-		return err;
+	int bytes = recvfrom(fd, message, sizeof(dw_message_t), 0, 0, 0);
+	if (bytes != sizeof(dw_message_t)) {
+		EPRINTF("recvfrom() failed: expected size: %lu, actual size: %d\n", sizeof(dw_message_t), bytes);
+		return -1;
+	}
 
 	DPRINTF("received filename '%s' message (username = %s, key= %s)\n",
-	    message->filename, message->username, message->key);
+			message->filename, message->username, message->key);
 
 	return 0;
 }
 
 int
-write_message(int fd, dw_message_t *message, struct timeval *timeout)
+write_message(int fd, struct sockaddr_un *addr, dw_message_t *message)
 {
-	fd_set writefds;
-	int ret, len, offset;
-
-	offset = 0;
-	len    = sizeof(dw_message_t);
+	int ret;
 
 	DPRINTF("sending filename '%s' message\n", message->filename);
 
-	while (offset < len) {
-		FD_ZERO(&writefds);
-		FD_SET(fd, &writefds);
+	ret = sendto(fd, message, sizeof(dw_message_t), 0, (struct sockaddr*)addr, sizeof(struct sockaddr_un));
 
-		/* we don't bother reinitializing tv. at worst, it will wait a
-		 * bit more time than expected. */
-
-		ret = select(fd + 1, NULL, &writefds, NULL, timeout);
-		if (ret == -1)
-			break;
-		else if (FD_ISSET(fd, &writefds)) {
-			ret = write(fd, message + offset, len - offset);
-			if (ret <= 0)
-				break;
-			offset += ret;
-		} else
-			break;
-	}
-
-	if (offset != len) {
+	if (ret != sizeof(dw_message_t)) {
 		EPRINTF("failure writing message\n");
 		return -EIO;
 	}
@@ -495,23 +454,24 @@ write_message(int fd, dw_message_t *message, struct timeval *timeout)
 
 int get_key_from_dw(const char *name, char *buf, int buf_size)
 {
-	int fd, err;
-	struct sockaddr_un saddr, saddr_local;
+	int fd, err, pid;
+	struct sockaddr_un saddr, caddr;
 	dw_message_t message;
-	struct timeval timeout;
 
-	timeout.tv_sec = 30;
-	timeout.tv_usec = 0;
+	char client_path[36];
 
 	memset(&message, 0, sizeof(message));
 
 	err = snprintf(message.filename,
-		       sizeof(message.filename) - 1, "%s", name);
+			sizeof(message.filename) - 1, "%s", name);
 
 	if (err >= sizeof(message.filename)) {
 		EPRINTF("name too long\n");
 		return ENAMETOOLONG;
 	}
+
+	pid = getpid();
+	snprintf(client_path, 35, "/tmp/tapdisk%d.socket", pid);
 
 	fd = socket(AF_UNIX, SOCK_DGRAM, 0);
 	if (fd == -1) {
@@ -519,37 +479,39 @@ int get_key_from_dw(const char *name, char *buf, int buf_size)
 		return -errno;
 	}
 
-	memset(&saddr, 0, sizeof(saddr));
+	memset(&saddr, 0, sizeof(struct sockaddr_un));
 	saddr.sun_family = AF_UNIX;
 	strcpy(saddr.sun_path, "/tmp/dw.socket");
 
-	memset(&saddr_local, 0, sizeof(saddr_local));
-	saddr_local.sun_family = AF_UNIX;
-	strcpy(saddr_local.sun_path, "/tmp/xapi.dw");
+	memset(&caddr, 0, sizeof(struct sockaddr_un));
+	caddr.sun_family = AF_UNIX;
+	strcpy(caddr.sun_path, client_path);
 
-	bind(fd, (const struct sockaddr*)&saddr_local, sizeof(saddr_local));
-
-	/*err = connect(fd, (const struct sockaddr *)&saddr, sizeof(saddr));*/
-	if (err) {
-		EPRINTF("couldn't connect to %s: %d\n", name, errno);
-		close(fd);
+	if (unlink(client_path) != 0 && errno != ENOENT) {
+		EPRINTF("failed to unlink %s\n", client_path);
 		return -errno;
 	}
-
-	err = write_message(fd, &message, &timeout);
+	if (bind(fd, (struct sockaddr*)&caddr, sizeof(struct sockaddr_un)) == -1) {
+		EPRINTF("failed to bind to %s: %s\n", client_path, strerror(errno));
+		return -errno;
+	}
+	err = write_message(fd, &saddr, &message);
 	if (err) {
 		EPRINTF("failed to send filename '%s' message\n",
-			message.filename);
+				message.filename);
 		return err;
 	}
 
-	err = read_message(fd, &message, &timeout);
+	err = read_message(fd, &message, 5000);
 	if (err) {
 		EPRINTF("failed to receive key '%s' message\n",
-			message.key);
+				message.key);
 		return err;
 	}
 	memcpy(buf, message.key, buf_size);
+
+	close(fd);
+	unlink(client_path);
 	return 0;
 }
 #endif
@@ -970,9 +932,9 @@ __vhd_open(td_driver_t *driver, const char *name, vhd_flag_t flags)
 
 #ifdef XS_VHD
 	if (s->vhd.footer.encrypt_method != VHD_CRYPT_NONE) {
-		/*if (get_key_from_dw(name, password, sizeof(password)) < 0)
-			goto fail;*/
-		memset(&password[0], 0xaa, ENCRYPT_BYTE);
+		if (get_key_from_dw(name, password, sizeof(password)) < 0)
+			goto fail;
+		/*memset(&password[0], 0xaa, ENCRYPT_BYTE); */
 		if (vhd_set_key(s, password) < 0)
 			goto fail;
         DPRINTF("Set password for encrypted disk");
