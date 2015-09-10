@@ -307,6 +307,7 @@ struct dw_message {
 	char filename[128];
 	char username[64];
 	char key[KEY_LEN];
+	unsigned int err;
 };
 #endif
 
@@ -506,6 +507,9 @@ int get_key_from_dw(const char *name, char *buf, int buf_size)
 	if (err) {
 		EPRINTF("failed to receive key '%s' message\n",
 				message.key);
+		return err;
+	}else if (message.err != 0){
+		EPRINTF("failed to get key\n");
 		return err;
 	}
 	memcpy(buf, message.key, buf_size);
