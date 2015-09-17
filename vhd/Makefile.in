@@ -191,7 +191,7 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 SUBDIRS = lib
 AM_CFLAGS = -Wall -Werror
-AM_CPPFLAGS = -D_GNU_SOURCE -I$(top_srcdir)/include
+AM_CPPFLAGS = -D_GNU_SOURCE -DXS_VHD -I$(top_srcdir)/include
 LDADD = lib/libvhd.la
 vhd_index_LDADD = lib/libvhd.la -luuid
 all: all-recursive

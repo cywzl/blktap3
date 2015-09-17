@@ -243,13 +243,6 @@ mostlyclean-libtool:
 clean-libtool:
 	-rm -rf .libs _libs
 
-package:
-	git archive --format tar --prefix blktap-3.0.0.xs970/ HEAD | bzip2 > blktap-3.0.0.xs970.tar.bz2
-rpm: package
-	mv blktap-3.0.0.xs970.tar.bz2 $(RPMROOT)/SOURCES
-	cp redhat/blktap.spec $(RPMROOT)/SPECS
-	rpmbuild --define="release ${rpmversion}" -ba $(RPMROOT)/SPECS/blktap.spec
-
 distclean-libtool:
 	-rm -f libtool
 uninstall-info-am:
@@ -476,7 +469,7 @@ distcheck: dist
 	*.zip*) \
 	  unzip $(distdir).zip ;;\
 	esac
-	chmod -R a-w $(distdir); chmod a+w $(distdir)
+	chmod -R a-w $(distdir); chmod u+w $(distdir)
 	mkdir $(distdir)/_build
 	mkdir $(distdir)/_inst
 	chmod a-w $(distdir)
@@ -623,6 +616,13 @@ uninstall-info: uninstall-info-recursive
 	mostlyclean-libtool mostlyclean-recursive pdf pdf-am ps ps-am \
 	tags tags-recursive uninstall uninstall-am uninstall-info-am
 
+
+package:
+	git archive --format tar --prefix blktap-3.0.0.xs992/ HEAD | bzip2 > blktap-3.0.0.xs992.tar.bz2
+rpm: package
+	mv blktap-3.0.0.xs992.tar.bz2 $(RPMROOT)/SOURCES
+	cp redhat/blktap.spec $(RPMROOT)/SPECS
+	rpmbuild --define="release ${rpmversion}" -ba $(RPMROOT)/SPECS/blktap.spec
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
