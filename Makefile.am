@@ -16,7 +16,7 @@ MAYBE_part = part
 endif
 
 package:
-	git archive --format tar --prefix blktap-3.0.0.xs970/ HEAD | bzip2 > blktap-3.0.0.xs970.tar.bz2
+	git archive --format tar --prefix blktap-3.0.0.xs992/ HEAD | bzip2 > blktap-3.0.0.xs970.tar.bz2
 rpm: package
 	mv blktap-3.0.0.xs970.tar.bz2 $(RPMROOT)/SOURCES
 	cp redhat/blktap.spec $(RPMROOT)/SPECS
