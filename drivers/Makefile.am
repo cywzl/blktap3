@@ -2,7 +2,7 @@ AM_CFLAGS  = -Wall
 AM_CFLAGS += -Werror
 # TODO add -Wextra
 
-AM_CPPFLAGS  = -D_GNU_SOURCE -DXS_VHD #-DPERF_PROFILE
+AM_CPPFLAGS  = -D_GNU_SOURCE -DXS_VHD #-DXS_LINUX_DEBUG #-DPERF_PROFILE
 AM_CPPFLAGS += -I$(top_srcdir)/include -lrt
 
 libexec_PROGRAMS = tapdisk
@@ -71,6 +71,8 @@ libtapdisk_la_SOURCES += io-optimize.c
 libtapdisk_la_SOURCES += io-optimize.h
 libtapdisk_la_SOURCES += lock.c
 libtapdisk_la_SOURCES += lock.h
+libtapdisk_la_SOURCES += aes.c
+libtapdisk_la_SOURCES += aes.h
 libtapdisk_la_SOURCES += bswap.h
 libtapdisk_la_SOURCES += blk.h
 libtapdisk_la_SOURCES += blk_linux.c

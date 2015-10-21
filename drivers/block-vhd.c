@@ -65,7 +65,7 @@
 #include "tapdisk-interface.h"
 #include "tapdisk-disktype.h"
 #include "tapdisk-storage.h"
-/*#include "aes.h"*/
+#include "aes.h"
 #include "sm4.h"
 #include "bswap.h"
 
@@ -147,50 +147,34 @@ unsigned int SPB;
 #define VHD_FLAG_TX_LIVE             1
 #define VHD_FLAG_TX_UPDATE_BAT       2
 
-#if !defined (ALIGN16)
-# if defined (__GNUC__)
-#  define ALIGN16  __attribute__  ( (aligned (16)))
-# else
-#  define ALIGN16 __declspec (align (16))
-# endif
+#ifdef XS_VHD
+unsigned int AES_NI;
+
+void verify_aes(void){
+	uint32_t ecx;
+
+	asm("movl $1, %%eax\n\t"
+		"cpuid\n\t"
+		"movl %%ecx, %0\n\t"
+		:"=r"(ecx)
+		:
+		:"%eax", "%ebx", "%ecx", "%edx");
+	if (ecx & 0x00000040)
+		AES_NI = 1;
+	else
+		AES_NI = 0;
+}
+
+typedef union{
+	AES_KEY aes_key;
+	sm4_context sm4_key;
+}ENCRYPT_CONTEXT;
 #endif
 
 typedef uint8_t vhd_flag_t;
 
 struct vhd_state;
 struct vhd_request;
-
-typedef struct KEY_SCHEDULE{
-    ALIGN16 unsigned char KEY[16*15];
-    unsigned int nr;
-}AES_KEY;
-
-typedef union{
-	AES_KEY aes_key;
-	sm4_context sm4_key;
-}ENCRYPT_CONTEXT;
-
-extern void AES_CBC_encrypt (const unsigned char *in,
-                 	 unsigned char *out,
-					 unsigned char ivec[16],
-					 unsigned long length,
-                 	 const unsigned char *KS,
-					 int nr);
-
-extern void AES_CBC_decrypt (const unsigned char *in,
-							unsigned char *out,
-							unsigned char ivec[16],
-							unsigned long length,
-							const unsigned char *KS,
-							int nr);
-
-extern int AES_set_encrypt_key (const unsigned char *userKey,
-        						const int bits,
-								AES_KEY *key);
-
-extern int AES_set_decrypt_key (const unsigned char *userKey,
-                        const int bits,
-                        AES_KEY *key);
 
 struct vhd_req_list {
 	struct vhd_request       *head;
@@ -936,9 +920,12 @@ __vhd_open(td_driver_t *driver, const char *name, vhd_flag_t flags)
 
 #ifdef XS_VHD
 	if (s->vhd.footer.encrypt_method != VHD_CRYPT_NONE) {
+#ifndef XS_LINUX_DEBUG
 		if (get_key_from_dw(name, password, sizeof(password)) < 0)
 			goto fail;
-		/*memset(&password[0], 0xaa, ENCRYPT_BYTE); */
+#else
+		memset(&password[0], 0xaa, ENCRYPT_BYTE);
+#endif
 		if (vhd_set_key(s, password) < 0)
 			goto fail;
         DPRINTF("Set password for encrypted disk");

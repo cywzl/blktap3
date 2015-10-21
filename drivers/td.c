@@ -290,8 +290,13 @@ td_snapshot(int type, int argc, char *argv[])
 	struct stat stats;
 	char *name, *backing, *limit = NULL;
 #ifdef XS_VHD
-	uint8_t encrypt_method = 0;
+	char* encrypt_method = NULL;
 #endif
+
+#ifdef XS_LINUX_DEBUG
+	libvhd_set_log_level(1);
+#endif
+
 	int fixedsize = 0, rawparent = 0;
 
 	if (type != TD_TYPE_VHD) {
@@ -300,7 +305,11 @@ td_snapshot(int type, int argc, char *argv[])
 		return EINVAL;
 	}
 
+#ifndef XS_VHD
 	while ((c = getopt(argc, argv, "hbml:")) != -1) {
+#else
+	while ((c = getopt(argc, argv, "E:hbml:")) != -1) {
+#endif
 		switch(c) {
 		case 'b':
 			fixedsize = 1;
@@ -316,7 +325,7 @@ td_snapshot(int type, int argc, char *argv[])
 			goto usage;
 #ifdef XS_VHD
 		case 'E':
-			encrypt_method = VHD_CRYPT_AES;
+			encrypt_method = optarg;
 			break;
 #endif
 		default:
@@ -360,14 +369,16 @@ td_snapshot(int type, int argc, char *argv[])
 		cargv[cargc++] = limit;
 	}
 #ifdef XS_VHD
-	if (encrypt_method)
+	if (encrypt_method){
 		cargv[cargc++] = "-E";
+		cargv[cargc++] = encrypt_method;
+	}
 #endif
 	return vhd_util_snapshot(cargc, cargv);
 
  usage:
 	fprintf(stderr, "usage: td-util snapshot %s [-h help] [-m parent_raw] "
-		"[-b file_is_fixed_size] [-l snapshot depth limit] "
+		"[-b file_is_fixed_size] [-l snapshot depth limit] [-E encrypt method] "
 		"<FILENAME> <BACKING_FILENAME>\n", td_disk_types[type]);
 	return err;
 }

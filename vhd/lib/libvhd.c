@@ -2690,6 +2690,9 @@ vhd_initialize_footer(vhd_context_t *ctx, int type, uint64_t size, uint8_t encry
 	ctx->footer.saved        = 0;
 #ifdef XS_VHD
 	ctx->footer.encrypt_method	= encrypt_method;
+#ifdef XS_LINUX_DEBUG
+	VHDLOG("vhd encrypt_method initialized to %d\n", encrypt_method);
+#endif
 #endif
 	ctx->footer.data_offset  = 0xFFFFFFFFFFFFFFFFULL;
 	strcpy(ctx->footer.crtr_app, "tap");
@@ -2761,9 +2764,15 @@ get_file_size(const char *name)
 	return end;
 }
 
+#ifndef XS_VHD
 static int
 vhd_initialize_header(vhd_context_t *ctx, const char *parent_path, 
 		uint64_t size, int raw, uint64_t *psize)
+#else
+static int
+vhd_initialize_header(vhd_context_t *ctx, const char *parent_path,
+		uint64_t size, int raw, uint64_t *psize, uint8_t encrypt_method)
+#endif
 {
 	int err;
 	struct stat stats;
@@ -2810,7 +2819,13 @@ vhd_initialize_header(vhd_context_t *ctx, const char *parent_path,
 
 		ctx->header.prt_ts = vhd_time(stats.st_mtime);
 #ifdef XS_VHD
-		ctx->footer.encrypt_method = parent.footer.encrypt_method;
+		/*if the value of encrypt_method is 0, use the value of encrypt_method of the parent vhd*/
+		if(!encrypt_method){
+			ctx->footer.encrypt_method = parent.footer.encrypt_method;
+#ifdef XS_LINUX_DEBUG
+			VHDLOG("snapshot vhd encrypt_method set to its parent's value: %d", parent.footer.encrypt_method);
+#endif
+		}
 #endif
 		uuid_copy(ctx->header.prt_uuid, parent.footer.uuid);
 		*psize = parent.footer.curr_size;
@@ -3132,6 +3147,10 @@ __vhd_create(const char *name, const char *parent, uint64_t bytes, int type, uin
 	vhd_context_t ctx;
 	uint64_t size, psize, blks;
 
+#ifdef XS_LINUX_DEBUG
+	VHDLOG("__vhd_create in\n");
+#endif
+
 	switch (type) {
 	case HD_TYPE_DIFF:
 		if (!parent)
@@ -3188,7 +3207,11 @@ __vhd_create(const char *name, const char *parent, uint64_t bytes, int type, uin
 			goto out;
 	} else {
 		int raw = vhd_flag_test(flags, VHD_FLAG_CREAT_PARENT_RAW);
+#ifndef XS_VHD
 		err = vhd_initialize_header(&ctx, parent, size, raw, &psize);
+#else
+		err = vhd_initialize_header(&ctx, parent, size, raw, &psize, encrypt_method);
+#endif
 		if (err)
 			goto out;
 

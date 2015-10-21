@@ -59,6 +59,9 @@
 extern unsigned int PAGE_SIZE;
 extern unsigned int PAGE_MASK;
 extern unsigned int PAGE_SHIFT;
+#ifdef XS_VHD
+extern unsigned int AES_NI;
+#endif
 
 #define MAX_SEGMENTS_PER_REQ         11
 #define MAX_REQUESTS                 32U
@@ -212,6 +215,10 @@ td_sector_count_add(td_sector_count_t *s, td_sector_t v, int write)
 	else
 		s->rd += v;
 }
+
+#ifdef XS_VHD
+void verify_aes(void);
+#endif
 
 void td_panic(void);
 

@@ -116,6 +116,10 @@ main(int argc, char *argv[])
 		}
 	}
 
+#ifdef XS_VHD
+	verify_aes();
+#endif
+
 	tapdisk_start_logging("tapdisk", NULL);
 
 	err = tapdisk_control_open(&control);

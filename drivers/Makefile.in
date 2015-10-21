@@ -62,7 +62,7 @@ am_libtapdisk_la_OBJECTS = statistics.lo scheduler.lo \
 	tapdisk-queue.lo tapdisk-filter.lo tapdisk-logfile.lo \
 	tapdisk-log.lo tapdisk-utils.lo tapdisk-syslog.lo \
 	tapdisk-stats.lo tapdisk-storage.lo tapdisk-loglimit.lo \
-	io-optimize.lo lock.lo blk_linux.lo atomicio.lo \
+	io-optimize.lo lock.lo aes.lo blk_linux.lo atomicio.lo \
 	tapdisk-fdreceiver.lo md5.lo block-aio.lo block-ram.lo \
 	block-cache.lo block-vhd.lo block-valve.lo block-vindex.lo \
 	block-lcache.lo block-llcache.lo block-nbd.lo td-blkif.lo \
@@ -224,7 +224,8 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AM_CFLAGS = -Wall -Werror
 # TODO add -Wextra
-AM_CPPFLAGS = -D_GNU_SOURCE -DXS_VHD -I$(top_srcdir)/include -lrt
+AM_CPPFLAGS = -D_GNU_SOURCE -DXS_VHD -DXS_LINUX_DEBUG \
+	-I$(top_srcdir)/include -lrt
 tapdisk_SOURCES = tapdisk2.c
 tapdisk_LDADD = libtapdisk.la ../libs/libaes.a ../libs/libsm4.a
 tapdisk_stream_LDADD = libtapdisk.la ../libs/libaes.a ../libs/libsm4.a
@@ -248,7 +249,7 @@ libtapdisk_la_SOURCES = tapdisk.h statistics.c statistics.h \
 	tapdisk-syslog.h tapdisk-stats.c tapdisk-stats.h \
 	tapdisk-storage.c tapdisk-storage.h tapdisk-loglimit.c \
 	tapdisk-loglimit.h io-optimize.c io-optimize.h lock.c lock.h \
-	bswap.h blk.h blk_linux.c atomicio.c atomicio.h \
+	aes.c aes.h bswap.h blk.h blk_linux.c atomicio.c atomicio.h \
 	tapdisk-fdreceiver.c tapdisk-fdreceiver.h md5.c md5.h \
 	block-aio.c block-aio.h block-ram.c block-cache.c block-vhd.c \
 	block-valve.c block-valve.h block-vindex.c block-lcache.c \
@@ -387,6 +388,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aes.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/atomicio.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/blk_linux.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/block-aio.Plo@am__quote@
